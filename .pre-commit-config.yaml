@@ -1,0 +1,22 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v5.0.0
+  hooks:
+    - id: check-yaml
+    - id: check-json
+    - id: check-toml
+    - id: end-of-file-fixer
+    - id: trailing-whitespace
+    - id: detect-private-key
+    - id: requirements-txt-fixer
+      exclude: '.vscode/.*'
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.9.3
+  hooks:
+    # Run the linter.
+    - id: ruff
+      types_or: [ python, pyi, jupyter ]
+      args: [ --fix ]
+    # Run the formatter.
+    - id: ruff-format
+      types_or: [ python, pyi, jupyter ]
