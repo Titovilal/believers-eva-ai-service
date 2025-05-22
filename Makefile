@@ -3,7 +3,7 @@ setup:
 		uv sync
 		uv run pre-commit install
 		echo "OPENAI_API_KEY=" > .env
-		echo "GOOGLE_API_KEY=" >> .env
+		echo "GEMINI_API_KEY=" >> .env
 		echo "ANTHROPIC_API_KEY=" >> .env
 		@echo "Remember to fill .env"
 
