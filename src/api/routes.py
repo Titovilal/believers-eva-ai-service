@@ -4,6 +4,7 @@ API route definitions and handlers.
 """
 
 from fastapi import APIRouter
+from pydantic_ai import AgentRunResult
 from src.api.models import ChatRequest, ChatResponse
 from src.agents.agent_factory import AgentFactory
 from dotenv import load_dotenv
@@ -27,9 +28,9 @@ async def chat(request: ChatRequest):
     agent.setup()
 
     # Run the agent with the user's message
-    result = await agent.run_async(request.message)
+    result: AgentRunResult = await agent.run_async(request.message)
 
-    return ChatResponse(response=result.data)
+    return ChatResponse(response=result.output)
 
 
 @router.get("/health")

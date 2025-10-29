@@ -5,7 +5,6 @@ Factory for creating different types of agents.
 
 from abc import ABC, abstractmethod
 import time
-import os
 
 from pydantic_ai import Agent, ModelMessage
 from pydantic_ai.result import FinalResult
@@ -22,8 +21,7 @@ class BaseAgent(ABC):
         self.model_name = model
         self.model = OpenAIChatModel(
             model,
-            base_url="https://openrouter.ai/api/v1",
-            api_key=os.getenv("OPENROUTER_API_KEY"),
+            provider="openrouter",
         )
         self.deps = None
         self.agent = None
