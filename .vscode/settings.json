@@ -4,7 +4,12 @@
         "**/.svn": true,
         "**/.hg": true,
         "**/.DS_Store": true,
-        "**/Thumbs.db": true
+        "**/Thumbs.db": true,
+        ".venv":true,
+        ".vscode":true,
+        "uv.lock":true,
+        "pyproject.toml":true,
+        ".python-version":true
     },
     "explorerExclude.backup": {}
 }
