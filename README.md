@@ -1,2 +1,0 @@
-# believers-eva
-Eva project
