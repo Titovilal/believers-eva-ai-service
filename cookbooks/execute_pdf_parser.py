@@ -4,6 +4,8 @@ Script to demonstrate PDF parsing functionality.
 """
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
 
 # Add project root to Python path
 project_root = Path(__file__).parent.parent
@@ -24,7 +26,7 @@ def main():
     
     try:
         # Parse PDF to text
-        result = parse_pdf_to_text(pdf_path)
+        result = parse_pdf_to_text(pdf_path, enable_image_annotation=True)
         
         # Display metadata
         print("\n📄 PDF METADATA:")
