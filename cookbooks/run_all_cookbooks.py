@@ -122,7 +122,7 @@ def main():
     args = parser.parse_args()
 
     cookbooks = [
-        "execute_pdf_parser.py",
+        "execute_parse_pdf.py",
         "execute_detect_number_in_text.py",
         "execute_generate_chunks.py",
         "execute_generate_embeddings.py",

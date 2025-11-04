@@ -32,21 +32,19 @@ def _get_openai_vlm_options():
     options = PictureDescriptionApiOptions(
         url="https://api.openai.com/v1/chat/completions",
         params=dict(
-            model="gpt-4o",
-            max_tokens=300,
+            model="gpt-5-nano",
+            max_tokens=512,
         ),
         headers={
             "Authorization": f"Bearer {api_key}",
         },
         prompt="Describe the image in three sentences. Be concise and accurate.",
-        timeout=60,
+        timeout=34,
     )
     return options
 
 
-def parse_pdf_to_text(
-    pdf_path: str | Path, enable_image_annotation: bool = False
-) -> dict:
+def parse_pdf(pdf_path: str | Path, enable_image_annotation: bool = False) -> dict:
     """
     Parse a PDF file and extract all text content with metadata using Docling.
 

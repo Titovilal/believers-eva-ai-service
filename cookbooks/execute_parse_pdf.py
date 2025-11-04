@@ -4,7 +4,7 @@ Script to demonstrate PDF parsing functionality.
 """
 
 from base_cookbook import BaseCookbook
-from src.parsers.pdf_parser import parse_pdf_to_text
+from src.rag.parse_pdf import parse_pdf
 
 
 class PDFParserCookbook(BaseCookbook):
@@ -20,7 +20,7 @@ class PDFParserCookbook(BaseCookbook):
         self.print_header(f"Parsing PDF: {pdf_path.name}")
 
         # Parse PDF to text
-        result = parse_pdf_to_text(pdf_path, enable_image_annotation=True)
+        result = parse_pdf(pdf_path, enable_image_annotation=True)
 
         # Display metadata
         print("\n📄 PDF METADATA:")
