@@ -2,68 +2,50 @@
 Execute PDF Parser
 Script to demonstrate PDF parsing functionality.
 """
-import sys
-from pathlib import Path
-from dotenv import load_dotenv
-load_dotenv()
-
-# Add project root to Python path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-
-from src.parsers.pdf_parser import parse_pdf_to_text  # noqa: E402
+from base_cookbook import BaseCookbook
+from src.parsers.pdf_parser import parse_pdf_to_text
 
 
-def main():
-    # Path to the sample PDF
-    pdf_path = Path(__file__).parent.parent / "data" / "sample_pdfs" / "somatosensory.pdf"
-    
-    print("=" * 80)
-    print("PDF PARSER EXECUTION")
-    print("=" * 80)
-    print(f"\nParsing PDF: {pdf_path.name}")
-    print("-" * 80)
-    
-    try:
+class PDFParserCookbook(BaseCookbook):
+    """Cookbook for PDF parsing functionality."""
+
+    def __init__(self):
+        super().__init__("PDF PARSER EXECUTION")
+
+    def run(self):
+        # Path to the sample PDF
+        pdf_path = self.data_dir / "sample.pdf"
+
+        self.print_header(f"Parsing PDF: {pdf_path.name}")
+
         # Parse PDF to text
         result = parse_pdf_to_text(pdf_path, enable_image_annotation=True)
-        
+
         # Display metadata
         print("\n📄 PDF METADATA:")
         print(f"  File Name: {result['file_name']}")
         print(f"  Page Count: {result['page_count']}")
         for key, value in result['metadata'].items():
             print(f"  {key.title()}: {value}")
-        
+
         # Display text content
         print("\n📝 EXTRACTING TEXT CONTENT:")
         print("-" * 80)
         text_content = result['text']
-        
+
         # Display first 2000 characters as preview
         if len(text_content) > 2000:
             print(text_content[:2000])
             print(f"\n... (truncated - total length: {len(text_content)} characters)")
         else:
             print(text_content)
-        
-        # Save to file in cookbooks/outputs directory
-        output_dir = Path(__file__).parent / "outputs"
-        output_dir.mkdir(exist_ok=True)
-        output_path = output_dir / f"{pdf_path.stem}.md"
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(text_content)
-        
-        print("\n" + "=" * 80)
-        print("✅ Successfully parsed PDF!")
-        print(f"📁 Full text saved to: {output_path}")
-        print("=" * 80)
-        
-    except Exception as e:
-        print(f"\n❌ Error: {str(e)}")
-        import traceback
-        traceback.print_exc()
+
+        # Save to file
+        output_path = self.save_text_file(text_content, f"{pdf_path.stem}.md")
+
+        self.print_success("Successfully parsed PDF!", output_path)
 
 
 if __name__ == "__main__":
-    main()
+    cookbook = PDFParserCookbook()
+    cookbook.execute()
