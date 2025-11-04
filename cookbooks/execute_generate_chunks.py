@@ -2,6 +2,7 @@
 Execute Chunking
 Script to demonstrate text chunking functionality.
 """
+
 from base_cookbook import BaseCookbook
 from src.rag.generate_chunks import generate_chunks
 

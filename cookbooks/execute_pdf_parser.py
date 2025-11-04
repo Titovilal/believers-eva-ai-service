@@ -2,6 +2,7 @@
 Execute PDF Parser
 Script to demonstrate PDF parsing functionality.
 """
+
 from base_cookbook import BaseCookbook
 from src.parsers.pdf_parser import parse_pdf_to_text
 
@@ -25,13 +26,13 @@ class PDFParserCookbook(BaseCookbook):
         print("\n📄 PDF METADATA:")
         print(f"  File Name: {result['file_name']}")
         print(f"  Page Count: {result['page_count']}")
-        for key, value in result['metadata'].items():
+        for key, value in result["metadata"].items():
             print(f"  {key.title()}: {value}")
 
         # Display text content
         print("\n📝 EXTRACTING TEXT CONTENT:")
         print("-" * 80)
-        text_content = result['text']
+        text_content = result["text"]
 
         # Display first 2000 characters as preview
         if len(text_content) > 2000:

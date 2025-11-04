@@ -2,6 +2,7 @@
 Execute Embeddings
 Script to demonstrate embeddings generation functionality.
 """
+
 from base_cookbook import BaseCookbook
 from src.rag.generate_embeddings import generate_embeddings
 
@@ -25,22 +26,22 @@ class EmbeddingsCookbook(BaseCookbook):
         # Parse chunks from the saved format
         chunks = []
         current_chunk = []
-        for line in chunks_content.split('\n'):
-            if line.startswith('=' * 80):
+        for line in chunks_content.split("\n"):
+            if line.startswith("=" * 80):
                 if current_chunk:
                     # Join and add the previous chunk (skip the CHUNK N line)
-                    chunk_text = '\n'.join(current_chunk[1:]).strip()
+                    chunk_text = "\n".join(current_chunk[1:]).strip()
                     if chunk_text:
                         chunks.append(chunk_text)
                     current_chunk = []
-            elif line.startswith('CHUNK '):
+            elif line.startswith("CHUNK "):
                 current_chunk = [line]
             elif current_chunk:
                 current_chunk.append(line)
 
         # Add the last chunk if exists
         if current_chunk:
-            chunk_text = '\n'.join(current_chunk[1:]).strip()
+            chunk_text = "\n".join(current_chunk[1:]).strip()
             if chunk_text:
                 chunks.append(chunk_text)
 
@@ -61,9 +62,9 @@ class EmbeddingsCookbook(BaseCookbook):
 
         # Save embeddings as JSON
         embeddings_data = {
-            'chunk_count': len(chunks),
-            'embedding_dimension': len(embeddings[0]),
-            'embeddings': embeddings
+            "chunk_count": len(chunks),
+            "embedding_dimension": len(embeddings[0]),
+            "embeddings": embeddings,
         }
         embeddings_path = self.save_json_file(embeddings_data, "sample_embeddings.json")
 

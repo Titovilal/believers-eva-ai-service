@@ -17,6 +17,7 @@ from tqdm import tqdm
 @dataclass
 class CookbookResult:
     """Result of running a cookbook."""
+
     name: str
     success: bool
     execution_time: float = 0.0
@@ -35,38 +36,55 @@ def run_cookbook(script_name: str, pbar: tqdm) -> CookbookResult:
             check=True,
             capture_output=True,
             text=True,
-            timeout=300  # 5 minute timeout
+            timeout=300,  # 5 minute timeout
         )
         execution_time = time.time() - start_time
         pbar.set_description(f"✓ {script_name}")
         pbar.update(1)
-        return CookbookResult(name=script_name, success=True, execution_time=execution_time)
+        return CookbookResult(
+            name=script_name, success=True, execution_time=execution_time
+        )
 
     except subprocess.CalledProcessError as e:
         execution_time = time.time() - start_time
         error_msg = e.stderr.strip() if e.stderr else e.stdout.strip()
         pbar.set_description(f"✗ {script_name}")
         pbar.update(1)
-        return CookbookResult(name=script_name, success=False, execution_time=execution_time, error_output=error_msg)
+        return CookbookResult(
+            name=script_name,
+            success=False,
+            execution_time=execution_time,
+            error_output=error_msg,
+        )
 
     except subprocess.TimeoutExpired:
         execution_time = time.time() - start_time
         pbar.set_description(f"✗ {script_name} (timeout)")
         pbar.update(1)
-        return CookbookResult(name=script_name, success=False, execution_time=execution_time, error_output="Timeout after 5 minutes")
+        return CookbookResult(
+            name=script_name,
+            success=False,
+            execution_time=execution_time,
+            error_output="Timeout after 5 minutes",
+        )
 
     except Exception as e:
         execution_time = time.time() - start_time
         pbar.set_description(f"✗ {script_name}")
         pbar.update(1)
-        return CookbookResult(name=script_name, success=False, execution_time=execution_time, error_output=str(e))
+        return CookbookResult(
+            name=script_name,
+            success=False,
+            execution_time=execution_time,
+            error_output=str(e),
+        )
 
 
 def print_summary(results: list[CookbookResult]) -> None:
     """Print a summary of all cookbook executions."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("EXECUTION SUMMARY")
-    print("="*60)
+    print("=" * 60)
 
     successful = [r for r in results if r.success]
     failed = [r for r in results if not r.success]
@@ -86,7 +104,7 @@ def print_summary(results: list[CookbookResult]) -> None:
                     error_preview += "..."
                 print(f"    Error: {error_preview}")
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
 
 
 def main():
@@ -95,10 +113,11 @@ def main():
         description="Run all cookbook scripts in parallel with live progress tracking."
     )
     parser.add_argument(
-        "-w", "--workers",
+        "-w",
+        "--workers",
         type=int,
         default=2,
-        help="Number of cookbooks to run concurrently (default: 2)"
+        help="Number of cookbooks to run concurrently (default: 2)",
     )
     args = parser.parse_args()
 
@@ -115,7 +134,9 @@ def main():
 
     # Execute in parallel and collect results
     results = []
-    with tqdm(total=len(cookbooks), bar_format='{desc} | {n_fmt}/{total_fmt} completed') as pbar:
+    with tqdm(
+        total=len(cookbooks), bar_format="{desc} | {n_fmt}/{total_fmt} completed"
+    ) as pbar:
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {executor.submit(run_cookbook, cb, pbar): cb for cb in cookbooks}
             for future in as_completed(futures):

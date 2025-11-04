@@ -1,14 +1,14 @@
 """
 Generate embeddings for text chunks using OpenAI.
 """
+
 import os
 from typing import List
 from openai import OpenAI
 
 
 def generate_embeddings(
-    chunks: List[str],
-    model: str = "text-embedding-3-small"
+    chunks: List[str], model: str = "text-embedding-3-small"
 ) -> List[List[float]]:
     """
     Generate embeddings for a list of text chunks using OpenAI.
@@ -35,10 +35,7 @@ def generate_embeddings(
         client = OpenAI(api_key=api_key)
 
         # Generate embeddings for all chunks
-        response = client.embeddings.create(
-            input=chunks,
-            model=model
-        )
+        response = client.embeddings.create(input=chunks, model=model)
 
         # Extract embeddings from response
         embeddings = [item.embedding for item in response.data]

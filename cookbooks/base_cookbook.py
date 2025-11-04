@@ -2,6 +2,7 @@
 Base Cookbook Class
 Provides common functionality for all cookbook scripts to avoid code duplication.
 """
+
 import sys
 from pathlib import Path
 from typing import Optional
@@ -85,6 +86,7 @@ class BaseCookbook:
         """
         print(f"\n❌ Error: {str(error)}")
         import traceback
+
         traceback.print_exc()
 
     def read_file(self, file_path: Path) -> str:
@@ -97,7 +99,7 @@ class BaseCookbook:
         Returns:
             File content as string
         """
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             return f.read()
 
     def save_text_file(self, content: str, filename: str) -> Path:
@@ -112,7 +114,7 @@ class BaseCookbook:
             Path to the saved file
         """
         output_path = self.output_dir / filename
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write(content)
         return output_path
 
@@ -128,8 +130,9 @@ class BaseCookbook:
             Path to the saved file
         """
         import json
+
         output_path = self.output_dir / filename
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
         return output_path
 

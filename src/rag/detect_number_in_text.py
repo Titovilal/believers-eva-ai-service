@@ -1,6 +1,7 @@
 """
 Detect numbers in text (both digit and text format).
 """
+
 import re
 from text_to_num import text2num
 
@@ -20,13 +21,13 @@ def detect_number_in_text(text: str, lang: str) -> bool:
         return False
 
     # Check for digit numbers using regex
-    if re.search(r'\d+', text):
+    if re.search(r"\d+", text):
         return True
 
     # Check for text numbers using text2num
     words = text.lower().split()
     for word in words:
-        clean_word = re.sub(r'[^\w\s]', '', word)
+        clean_word = re.sub(r"[^\w\s]", "", word)
         try:
             text2num(clean_word, lang)
             return True

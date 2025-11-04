@@ -2,6 +2,7 @@
 Execute Number Detection
 Script to demonstrate number detection functionality (digit and text formats).
 """
+
 from base_cookbook import BaseCookbook
 from src.rag.detect_number_in_text import detect_number_in_text
 
@@ -42,7 +43,7 @@ class NumberDetectionCookbook(BaseCookbook):
             emoji = "✅" if result else "❌"
             status = "HAS NUMBER" if result else "NO NUMBER"
             print(f"\n{i}. {emoji} [{status}]")
-            print(f"   Text: \"{text}\"")
+            print(f'   Text: "{text}"')
 
         self.print_success("Number detection completed!")
 

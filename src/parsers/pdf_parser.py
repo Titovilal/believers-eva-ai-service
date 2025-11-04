@@ -2,6 +2,7 @@
 PDF Parser Module
 Functions for parsing and extracting text from PDF files using Docling.
 """
+
 import os
 import re
 from pathlib import Path
@@ -24,7 +25,9 @@ def _get_openai_vlm_options():
     api_key = os.environ.get("OPENAI_API_KEY")
 
     if not api_key:
-        raise ValueError("OPENAI_API_KEY environment variable is required for image annotation")
+        raise ValueError(
+            "OPENAI_API_KEY environment variable is required for image annotation"
+        )
 
     options = PictureDescriptionApiOptions(
         url="https://api.openai.com/v1/chat/completions",
@@ -41,7 +44,9 @@ def _get_openai_vlm_options():
     return options
 
 
-def parse_pdf_to_text(pdf_path: str | Path, enable_image_annotation: bool = False) -> dict:
+def parse_pdf_to_text(
+    pdf_path: str | Path, enable_image_annotation: bool = False
+) -> dict:
     """
     Parse a PDF file and extract all text content with metadata using Docling.
 
@@ -63,13 +68,13 @@ def parse_pdf_to_text(pdf_path: str | Path, enable_image_annotation: bool = Fals
         Exception: If there's an error parsing the PDF
     """
     pdf_path = Path(pdf_path)
-    
+
     if not pdf_path.exists():
         raise FileNotFoundError(f"PDF file not found: {pdf_path}")
-    
-    if not pdf_path.suffix.lower() == '.pdf':
+
+    if not pdf_path.suffix.lower() == ".pdf":
         raise ValueError(f"File must be a PDF: {pdf_path}")
-    
+
     try:
         # Configure pipeline options for image annotation if enabled
         if enable_image_annotation:
@@ -113,55 +118,59 @@ def parse_pdf_to_text(pdf_path: str | Path, enable_image_annotation: bool = Fals
                         for annotation in annotations:
                             # Extract just the text content from the annotation
                             annotation_text = str(annotation)
-                            if 'text=' in annotation_text:
+                            if "text=" in annotation_text:
                                 # Parse the annotation to get just the description text
-                                match = re.search(r'text=["\'](.+?)["\']', annotation_text)
+                                match = re.search(
+                                    r'text=["\'](.+?)["\']', annotation_text
+                                )
                                 if match:
                                     annotation_text = match.group(1)
                             img_text += f"{annotation_text}\n"
-                            image_annotations.append({
-                                'ref': str(element.self_ref),
-                                'caption': caption,
-                                'annotation': annotation_text
-                            })
+                            image_annotations.append(
+                                {
+                                    "ref": str(element.self_ref),
+                                    "caption": caption,
+                                    "annotation": annotation_text,
+                                }
+                            )
                     else:
                         img_text += "*[No description available]*\n"
                     img_text += "</image>"
 
                     # Replace the placeholder in the markdown
                     full_text = full_text.replace("<!-- image -->", img_text, 1)
-        
+
         # Extract metadata from the document
         doc = result.document
         pdf_metadata = {
-            'title': getattr(doc, 'name', pdf_path.stem),
-            'author': 'Unknown',
-            'subject': 'Unknown',
-            'creator': 'Unknown',
-            'producer': 'Docling',
+            "title": getattr(doc, "name", pdf_path.stem),
+            "author": "Unknown",
+            "subject": "Unknown",
+            "creator": "Unknown",
+            "producer": "Docling",
         }
-        
+
         # Count pages (try to get from document structure)
         page_count = 0
-        if hasattr(doc, 'pages') and doc.pages:
+        if hasattr(doc, "pages") and doc.pages:
             page_count = len(doc.pages)
         else:
             # Fallback: estimate from text if pages info not available
             page_count = 1
-        
+
         result_dict = {
-            'text': full_text,
-            'metadata': pdf_metadata,
-            'page_count': page_count,
-            'file_path': str(pdf_path),
-            'file_name': pdf_path.name
+            "text": full_text,
+            "metadata": pdf_metadata,
+            "page_count": page_count,
+            "file_path": str(pdf_path),
+            "file_name": pdf_path.name,
         }
 
         # Add image annotations if enabled
         if enable_image_annotation:
-            result_dict['images'] = image_annotations
+            result_dict["images"] = image_annotations
 
         return result_dict
-    
+
     except Exception as e:
         raise Exception(f"Error parsing PDF {pdf_path}: {str(e)}")
