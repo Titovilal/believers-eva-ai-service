@@ -1,16 +1,16 @@
 """
-Execute Chunking and Embeddings
-Script to demonstrate text chunking and embeddings generation functionality.
+Execute Chunking
+Script to demonstrate text chunking functionality.
 """
 from base_cookbook import BaseCookbook
-from src.rag.db import generate_chunks_from_text, generate_embeddings
+from src.rag.generate_chunks import generate_chunks
 
 
-class ChunkingEmbeddingsCookbook(BaseCookbook):
-    """Cookbook for text chunking and embeddings generation."""
+class ChunkingCookbook(BaseCookbook):
+    """Cookbook for text chunking."""
 
     def __init__(self):
-        super().__init__("CHUNKING AND EMBEDDINGS GENERATION")
+        super().__init__("CHUNKING GENERATION")
 
     def run(self):
         # Path to the sample markdown file
@@ -25,11 +25,8 @@ class ChunkingEmbeddingsCookbook(BaseCookbook):
 
         # Step 2: Generate chunks
         print("\n🔪 Step 2: Generating chunks...")
-        chunks = generate_chunks_from_text(
+        chunks = generate_chunks(
             text=text_content,
-            chunk_size=1024,
-            chunk_overlap=0,
-            model="text-embedding-3-small"
         )
         print(f"  ✓ Generated {len(chunks)} chunks")
 
@@ -44,20 +41,6 @@ class ChunkingEmbeddingsCookbook(BaseCookbook):
         if len(chunks) > 3:
             print(f"\n... (showing 3 of {len(chunks)} chunks)")
 
-        # Step 3: Generate embeddings
-        print("\n🧮 Step 3: Generating embeddings...")
-        print(f"  Processing {len(chunks)} chunks...")
-        embeddings = generate_embeddings(
-            chunks=chunks,
-            model="text-embedding-3-small"
-        )
-        print(f"  ✓ Generated {len(embeddings)} embeddings")
-        print(f"  ✓ Embedding dimension: {len(embeddings[0])}")
-
-        # Display sample embedding
-        print("\n🔢 Sample embedding (first 10 dimensions of first chunk):")
-        print(f"  {embeddings[0][:10]}...")
-
         # Save chunks as text file
         chunks_content = ""
         for i, chunk in enumerate(chunks, 1):
@@ -69,21 +52,12 @@ class ChunkingEmbeddingsCookbook(BaseCookbook):
 
         chunks_path = self.save_text_file(chunks_content, f"{md_path.stem}_chunks.txt")
 
-        # Save embeddings as JSON
-        embeddings_data = {
-            'chunk_count': len(chunks),
-            'embedding_dimension': len(embeddings[0]),
-            'embeddings': embeddings
-        }
-        embeddings_path = self.save_json_file(embeddings_data, f"{md_path.stem}_embeddings.json")
-
         print("\n" + "=" * 80)
-        print("✅ Successfully generated chunks and embeddings!")
+        print("✅ Successfully generated chunks!")
         print(f"📁 Chunks saved to: {chunks_path}")
-        print(f"📁 Embeddings saved to: {embeddings_path}")
         print("=" * 80)
 
 
 if __name__ == "__main__":
-    cookbook = ChunkingEmbeddingsCookbook()
+    cookbook = ChunkingCookbook()
     cookbook.execute()
