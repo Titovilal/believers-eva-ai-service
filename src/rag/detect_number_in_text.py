@@ -4,9 +4,10 @@ Detect numbers in text (both digit and text format).
 
 import re
 from text_to_num import text2num
+from ..utils.constants import DEFAULT_LANGUAGE
 
 
-def detect_number_in_text(text: str, lang: str) -> bool:
+def detect_number_in_text(text: str, lang: str = DEFAULT_LANGUAGE) -> bool:
     """
     Check if text contains any number in digit or text format.
 

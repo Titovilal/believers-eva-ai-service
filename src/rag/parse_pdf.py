@@ -13,6 +13,13 @@ from docling.datamodel.pipeline_options import (
     PictureDescriptionApiOptions,
 )
 from docling_core.types.doc import PictureItem
+from ..utils.constants import (
+    IMAGE_ANNOTATION_API_URL,
+    IMAGE_ANNOTATION_MODEL,
+    IMAGE_ANNOTATION_MAX_TOKENS,
+    IMAGE_ANNOTATION_PROMPT,
+    IMAGE_ANNOTATION_TIMEOUT,
+)
 
 
 def _get_openai_vlm_options():
@@ -30,16 +37,16 @@ def _get_openai_vlm_options():
         )
 
     options = PictureDescriptionApiOptions(
-        url="https://api.openai.com/v1/chat/completions",
+        url=IMAGE_ANNOTATION_API_URL,
         params=dict(
-            model="gpt-5-nano",
-            max_tokens=512,
+            model=IMAGE_ANNOTATION_MODEL,
+            max_tokens=IMAGE_ANNOTATION_MAX_TOKENS,
         ),
         headers={
             "Authorization": f"Bearer {api_key}",
         },
-        prompt="Describe the image in three sentences. Be concise and accurate.",
-        timeout=34,
+        prompt=IMAGE_ANNOTATION_PROMPT,
+        timeout=IMAGE_ANNOTATION_TIMEOUT,
     )
     return options
 

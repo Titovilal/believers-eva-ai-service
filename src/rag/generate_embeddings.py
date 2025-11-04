@@ -5,10 +5,11 @@ Generate embeddings for text chunks using OpenAI.
 import os
 from typing import List
 from openai import OpenAI
+from ..utils.constants import DEFAULT_EMBEDDING_MODEL
 
 
 def generate_embeddings(
-    chunks: List[str], model: str = "text-embedding-3-small"
+    chunks: List[str], model: str = DEFAULT_EMBEDDING_MODEL
 ) -> List[List[float]]:
     """
     Generate embeddings for a list of text chunks using OpenAI.

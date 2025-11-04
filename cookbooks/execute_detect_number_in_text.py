@@ -39,7 +39,7 @@ class NumberDetectionCookbook(BaseCookbook):
         self.print_section("🔍 Testing number detection:")
 
         for i, text in enumerate(test_cases, 1):
-            result = detect_number_in_text(text, lang="en")
+            result = detect_number_in_text(text)
             emoji = "✅" if result else "❌"
             status = "HAS NUMBER" if result else "NO NUMBER"
             print(f"\n{i}. {emoji} [{status}]")

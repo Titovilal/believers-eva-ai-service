@@ -2,7 +2,7 @@ from random import random
 from src.agents.models import BaseDeps
 from pydantic_ai import RunContext
 
-from logs import log_exception, log_info
+from utils.logs import log_exception, log_info
 
 
 async def get_city_temperature(ctx: RunContext[BaseDeps], city: str) -> str:

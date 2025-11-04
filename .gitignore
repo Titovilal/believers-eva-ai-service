@@ -2,3 +2,4 @@
 __pycache__/
 cookbooks/outputs/*
 !cookbooks/outputs/Cookbook_Outputs_Here
+data/tmp/*

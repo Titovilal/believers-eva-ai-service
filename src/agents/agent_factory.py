@@ -10,7 +10,7 @@ from pydantic_ai import Agent, ModelMessage
 from pydantic_ai.result import FinalResult
 from pydantic_ai.models.openai import OpenAIChatModel
 
-from logs import log_info
+from utils.logs import log_info
 from src.agents.models import BaseDeps
 
 

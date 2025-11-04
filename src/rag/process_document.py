@@ -1,0 +1,119 @@
+"""
+Document Processing Module
+Handles base64 encoded documents from requests, supports PDF and text files.
+"""
+
+import base64
+import tempfile
+from pathlib import Path
+
+from .parse_pdf import parse_pdf
+from .generate_chunks import generate_chunks
+from .generate_embeddings import generate_embeddings
+from .detect_number_in_text import detect_number_in_text
+from ..utils.constants import (
+    DEFAULT_ENABLE_IMAGE_ANNOTATION,
+    DEFAULT_CHUNK_SIZE,
+    DEFAULT_CHUNK_OVERLAP,
+    DEFAULT_EMBEDDING_MODEL,
+    DEFAULT_LANGUAGE,
+)
+
+
+def process_document(
+    base64_data: str,
+    enable_image_annotation: bool = DEFAULT_ENABLE_IMAGE_ANNOTATION,
+    chunk_size: int = DEFAULT_CHUNK_SIZE,
+    chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
+    model: str = DEFAULT_EMBEDDING_MODEL,
+    lang: str = DEFAULT_LANGUAGE,
+) -> dict:
+    """
+    Process a base64 encoded document from a request.
+
+    Args:
+        base64_data: Base64 encoded document string (typical from request body)
+        enable_image_annotation: If True, annotate images in PDFs with AI descriptions
+        chunk_size: Maximum number of characters per chunk (default: 512)
+        chunk_overlap: Number of characters to overlap between chunks (default: 0)
+        model: OpenAI embedding model (default: "text-embedding-3-small")
+        lang: Language code for number detection (default: "es")
+
+    Returns:
+        dict: Document content and metadata including:
+            - text: Extracted text from the document
+            - chunks: List of text chunks
+            - embeddings: List of embedding vectors for each chunk
+            - chunks_with_numbers: List of booleans indicating which chunks contain numbers
+            - file_type: 'pdf' or 'text'
+            - (For PDFs) metadata, page_count, file_name
+
+    Raises:
+        ValueError: If the file is neither PDF nor text, or if base64 is invalid
+    """
+    try:
+        # Decode base64 data
+        decoded_data = base64.b64decode(base64_data)
+    except Exception as e:
+        raise ValueError(f"Invalid base64 data: {str(e)}")
+
+    # Check if it's a PDF by looking at the file signature
+    if decoded_data.startswith(b"%PDF"):
+        result = _process_pdf(decoded_data, enable_image_annotation)
+        text_content = result["text"]
+    else:
+        # Try to decode as text
+        try:
+            text_content = decoded_data.decode("utf-8")
+            result = {"text": text_content, "file_type": "text"}
+        except UnicodeDecodeError:
+            # If not PDF and not valid UTF-8 text, raise error
+            raise ValueError(
+                "Unsupported file type. Only PDF and text files are supported."
+            )
+
+    # Generate chunks from text
+    chunks = generate_chunks(
+        text_content, chunk_size=chunk_size, chunk_overlap=chunk_overlap, model=model
+    )
+
+    # Generate embeddings for chunks
+    embeddings = generate_embeddings(chunks, model=model)
+
+    # Detect which chunks contain numbers
+    chunks_with_numbers = [detect_number_in_text(chunk, lang) for chunk in chunks]
+
+    # Add processing results to the result dictionary
+    result["chunks"] = chunks
+    result["embeddings"] = embeddings
+    result["chunks_with_numbers"] = chunks_with_numbers
+
+    return result
+
+
+def _process_pdf(
+    pdf_data: bytes, enable_image_annotation: bool = DEFAULT_ENABLE_IMAGE_ANNOTATION
+) -> dict:
+    """
+    Process PDF file data.
+
+    Args:
+        pdf_data: Raw PDF file bytes
+        enable_image_annotation: If True, annotate images with AI descriptions
+
+    Returns:
+        dict: Parsed PDF content and metadata
+    """
+    # Create a temporary file to store the PDF
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_file:
+        temp_file.write(pdf_data)
+        temp_path = temp_file.name
+
+    try:
+        # Parse the PDF using the parse_pdf function
+        result = parse_pdf(temp_path, enable_image_annotation)
+        result["file_type"] = "pdf"
+        return result
+    finally:
+        # Clean up the temporary file
+        Path(temp_path).unlink(missing_ok=True)

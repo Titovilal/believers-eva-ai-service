@@ -20,7 +20,7 @@ class PDFParserCookbook(BaseCookbook):
         self.print_header(f"Parsing PDF: {pdf_path.name}")
 
         # Parse PDF to text
-        result = parse_pdf(pdf_path, enable_image_annotation=True)
+        result = parse_pdf(pdf_path)
 
         # Display metadata
         print("\n📄 PDF METADATA:")
