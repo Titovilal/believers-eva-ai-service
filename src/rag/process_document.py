@@ -11,12 +11,15 @@ from .parse_pdf import parse_pdf
 from .generate_chunks import generate_chunks
 from .generate_embeddings import generate_embeddings
 from .detect_number_in_text import detect_number_in_text
+from .extract_verifiable_data import extract_verifiable_data
 from ..utils.constants import (
     DEFAULT_ENABLE_IMAGE_ANNOTATION,
     DEFAULT_CHUNK_SIZE,
     DEFAULT_CHUNK_OVERLAP,
     DEFAULT_EMBEDDING_MODEL,
     DEFAULT_LANGUAGE,
+    DEFAULT_EXTRACT_VERIFIABLE,
+    DEFAULT_VERIFIABLE_MODEL,
 )
 
 
@@ -27,6 +30,8 @@ def process_document(
     chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
     model: str = DEFAULT_EMBEDDING_MODEL,
     lang: str = DEFAULT_LANGUAGE,
+    extract_verifiable: bool = DEFAULT_EXTRACT_VERIFIABLE,
+    verifiable_model: str = DEFAULT_VERIFIABLE_MODEL,
 ) -> dict:
     """
     Process a base64 encoded document from a request.
@@ -38,6 +43,8 @@ def process_document(
         chunk_overlap: Number of characters to overlap between chunks (default: 0)
         model: OpenAI embedding model (default: "text-embedding-3-small")
         lang: Language code for number detection (default: "es")
+        extract_verifiable: If True, extract verifiable data from chunks (default: True)
+        verifiable_model: OpenAI chat model for verifiable data extraction (default: "gpt-4o-mini")
 
     Returns:
         dict: Document content and metadata including:
@@ -45,6 +52,7 @@ def process_document(
             - chunks: List of text chunks
             - embeddings: List of embedding vectors for each chunk
             - chunks_with_numbers: List of booleans indicating which chunks contain numbers
+            - verifiable_facts: Extracted verifiable data (if extract_verifiable=True)
             - file_type: 'pdf' or 'text'
             - (For PDFs) metadata, page_count, file_name
 
@@ -87,6 +95,13 @@ def process_document(
     result["chunks"] = chunks
     result["embeddings"] = embeddings
     result["chunks_with_numbers"] = chunks_with_numbers
+
+    # Extract verifiable data if enabled
+    if extract_verifiable:
+        verifiable_facts = extract_verifiable_data(
+            chunks, chunks_with_numbers, model=verifiable_model
+        )
+        result["verifiable_facts"] = verifiable_facts
 
     return result
 

@@ -11,6 +11,10 @@ DEFAULT_CHUNK_SEPARATORS = ["\n\n", "\n", " ", ""]
 # Embedding constants
 DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
 
+# Verifiable data extraction constants
+DEFAULT_EXTRACT_VERIFIABLE = True
+DEFAULT_VERIFIABLE_MODEL = "gpt-4o-mini"
+
 # Language detection constants
 DEFAULT_LANGUAGE = "en"
 
