@@ -100,12 +100,55 @@ def process_document(
 
     # Extract verifiable data if enabled
     if extract_verifiable:
-        verifiable_facts = extract_verifiable_data(
+        verifiable_result = extract_verifiable_data(
             chunks, chunks_with_numbers, model=verifiable_model
         )
-        result["verifiable_facts"] = verifiable_facts
+        result["verifiable_facts"] = _filter_verifiable_statements_with_numbers(
+            verifiable_result, lang
+        )
 
     return result
+
+
+def _filter_verifiable_statements_with_numbers(
+    verifiable_result: dict, lang: str
+) -> dict:
+    """
+    Filter verifiable statements to only include those containing numbers.
+
+    Args:
+        verifiable_result: Result from extract_verifiable_data
+        lang: Language code for number detection
+
+    Returns:
+        dict: Filtered result with summary and verifiable_facts
+    """
+    filtered_verifiable_facts = []
+    for fact_group in verifiable_result["verifiable_facts"]:
+        if "statements" in fact_group and fact_group["statements"]:
+            # Filter statements that contain numbers
+            statements_with_numbers = [
+                stmt
+                for stmt in fact_group["statements"]
+                if detect_number_in_text(stmt, lang)
+            ]
+
+            if statements_with_numbers:
+                filtered_fact_group = fact_group.copy()
+                filtered_fact_group["statements"] = statements_with_numbers
+                filtered_verifiable_facts.append(filtered_fact_group)
+
+    return {
+        "summary": {
+            "total_chunks_analyzed": verifiable_result["summary"][
+                "total_chunks_analyzed"
+            ],
+            "total_statements_extracted": sum(
+                len(fg["statements"]) for fg in filtered_verifiable_facts
+            ),
+        },
+        "verifiable_facts": filtered_verifiable_facts,
+    }
 
 
 def _process_pdf(

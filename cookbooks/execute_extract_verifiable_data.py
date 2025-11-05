@@ -72,14 +72,21 @@ class VerifiableDataCookbook(BaseCookbook):
         print("-" * 80)
 
         # Extract verifiable data only from chunks with numbers
-        result = extract_verifiable_data(
+        extraction_result = extract_verifiable_data(
             chunks=filtered_chunks,
             chunks_with_numbers=filtered_chunks_with_numbers,
         )
 
+        # Restore original chunk indices
+        verifiable_facts_unfiltered = []
+        for fact_group in extraction_result["verifiable_facts"]:
+            restored_fact_group = fact_group.copy()
+            restored_fact_group["chunk_index"] = original_indices[fact_group["chunk_index"]]
+            verifiable_facts_unfiltered.append(restored_fact_group)
+
         # Filter statements to only include those with numbers
-        filtered_verifiable_facts = []
-        for fact_group in result["verifiable_facts"]:
+        verifiable_facts_filtered = []
+        for fact_group in verifiable_facts_unfiltered:
             if "statements" in fact_group and fact_group["statements"]:
                 # Filter statements that contain numbers
                 statements_with_numbers = [
@@ -90,17 +97,17 @@ class VerifiableDataCookbook(BaseCookbook):
                 if statements_with_numbers:
                     filtered_fact_group = fact_group.copy()
                     filtered_fact_group["statements"] = statements_with_numbers
-                    # Restore original chunk index
-                    filtered_fact_group["chunk_index"] = original_indices[fact_group["chunk_index"]]
-                    filtered_verifiable_facts.append(filtered_fact_group)
+                    verifiable_facts_filtered.append(filtered_fact_group)
 
-        # Reorder result to put summary first in JSON
+        # Build result with both versions
         result = {
             "summary": {
                 "total_chunks_analyzed": len(filtered_chunks),
-                "total_statements_extracted": sum(len(fg["statements"]) for fg in filtered_verifiable_facts)
+                "total_statements_extracted_unfiltered": sum(len(fg["statements"]) for fg in verifiable_facts_unfiltered),
+                "total_statements_extracted_filtered": sum(len(fg["statements"]) for fg in verifiable_facts_filtered)
             },
-            "verifiable_facts": filtered_verifiable_facts
+            "verifiable_facts_unfiltered": verifiable_facts_unfiltered,
+            "verifiable_facts_filtered": verifiable_facts_filtered
         }
 
         # Display results
@@ -108,12 +115,13 @@ class VerifiableDataCookbook(BaseCookbook):
 
         print("\nSummary:")
         print(f"  Total chunks analyzed: {result['summary']['total_chunks_analyzed']}")
-        print(f"  Total statements extracted: {result['summary']['total_statements_extracted']}")
+        print(f"  Total statements extracted (unfiltered): {result['summary']['total_statements_extracted_unfiltered']}")
+        print(f"  Total statements extracted (filtered): {result['summary']['total_statements_extracted_filtered']}")
 
-        print("\n🔍 Verifiable facts by chunk:")
+        print("\n🔍 Verifiable facts by chunk (FILTERED - only statements with numbers):")
         print("-" * 80)
 
-        for fact_group in result["verifiable_facts"]:
+        for fact_group in result["verifiable_facts_filtered"]:
             chunk_idx = fact_group["chunk_index"]
             chunk_text = sample_chunks[chunk_idx]
             print(f"\n📄 Chunk #{chunk_idx}:")
