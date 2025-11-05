@@ -29,10 +29,12 @@ def detect_number_in_text(text: str, lang: str = DEFAULT_LANGUAGE) -> bool:
     words = text.lower().split()
     for word in words:
         clean_word = re.sub(r"[^\w\s]", "", word)
+        if not clean_word:  # Skip empty strings
+            continue
         try:
             text2num(clean_word, lang)
             return True
-        except ValueError:
+        except Exception:  # Catch all exceptions including PanicException from Rust
             pass
 
     return False
