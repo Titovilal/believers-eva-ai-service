@@ -40,7 +40,7 @@ def _get_openai_vlm_options():
         url=IMAGE_ANNOTATION_API_URL,
         params=dict(
             model=IMAGE_ANNOTATION_MODEL,
-            max_tokens=IMAGE_ANNOTATION_MAX_TOKENS,
+            max_completion_tokens=IMAGE_ANNOTATION_MAX_TOKENS,
         ),
         headers={
             "Authorization": f"Bearer {api_key}",
