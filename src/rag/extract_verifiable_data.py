@@ -31,7 +31,7 @@ def extract_verifiable_data(
                 "verifiable_facts": [
                     {
                         "chunk_index": int,
-                        "statements": ["frase con dato fehaciente 1", "frase con dato fehaciente 2", ...]
+                        "statements": ["phrase with verifiable data 1", "phrase with verifiable data 2", ...]
                     },
                     ...
                 ],
@@ -69,21 +69,21 @@ def extract_verifiable_data(
         client = OpenAI(api_key=api_key)
         verifiable_data = []
 
-        system_prompt = """Eres un asistente experto en extraer datos fehacientes y verificables de textos.
-Tu tarea es analizar fragmentos de texto y extraer frases cortas que contengan información verificable como:
-- Fechas, números, cantidades, porcentajes
-- Métricas, estadísticas, mediciones
-- Afirmaciones con datos concretos
+        system_prompt = """You are an expert assistant in extracting verifiable and factual data from texts.
+Your task is to analyze text fragments and extract short phrases that contain verifiable information such as:
+- Dates, numbers, quantities, percentages
+- Metrics, statistics, measurements
+- Claims with concrete data
 
-Extrae frases cortas (máximo 15-20 palabras) que contengan estos datos fehacientes.
-Cada frase debe ser concisa pero mantener suficiente contexto para entenderse.
+Extract short phrases (maximum 15-20 words) that contain this verifiable data.
+Each phrase should be concise but maintain enough context to be understood.
 
-Responde ÚNICAMENTE con un objeto JSON válido con esta estructura:
+Respond ONLY with a valid JSON object with this structure:
 {
-    "statements": ["frase con dato fehaciente 1", "frase con dato fehaciente 2", ...]
+    "statements": ["phrase with verifiable data 1", "phrase with verifiable data 2", ...]
 }
 
-Si no encuentras datos fehacientes, devuelve un array vacío."""
+If you don't find verifiable data, return an empty array."""
 
         for chunk_index, chunk_text in chunks_to_analyze:
             try:
@@ -93,7 +93,7 @@ Si no encuentras datos fehacientes, devuelve un array vacío."""
                         {"role": "system", "content": system_prompt},
                         {
                             "role": "user",
-                            "content": f"Analiza el siguiente texto y extrae datos fehacientes:\n\n{chunk_text}",
+                            "content": f"Analyze the following text and extract verifiable data:\n\n{chunk_text}",
                         },
                     ],
                     temperature=temperature,
