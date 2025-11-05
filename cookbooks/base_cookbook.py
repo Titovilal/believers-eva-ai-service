@@ -133,7 +133,7 @@ class BaseCookbook:
 
         output_path = self.output_dir / filename
         with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+            json.dump(data, f, indent=2, ensure_ascii=False)
         return output_path
 
     def run(self):
