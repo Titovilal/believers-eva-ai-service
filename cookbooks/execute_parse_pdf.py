@@ -4,7 +4,7 @@ Script to demonstrate PDF parsing functionality.
 """
 
 from base_cookbook import BaseCookbook
-from src.rag.parse_pdf import parse_pdf
+from src.process_document.parse_pdf import parse_pdf
 
 
 class PDFParserCookbook(BaseCookbook):

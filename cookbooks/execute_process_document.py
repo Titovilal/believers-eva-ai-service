@@ -5,7 +5,7 @@ Script to demonstrate end-to-end document processing with RAG pipeline.
 
 import base64
 from base_cookbook import BaseCookbook
-from src.rag.process_document import process_document
+from src.process_document.process_document import process_document
 
 
 class ProcessDocumentCookbook(BaseCookbook):

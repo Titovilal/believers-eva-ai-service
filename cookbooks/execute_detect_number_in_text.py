@@ -4,7 +4,7 @@ Script to demonstrate number detection functionality (digit and text formats).
 """
 
 from base_cookbook import BaseCookbook
-from src.rag.detect_number_in_text import detect_number_in_text
+from src.process_document.detect_number_in_text import detect_number_in_text
 
 
 class NumberDetectionCookbook(BaseCookbook):

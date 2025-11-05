@@ -5,8 +5,8 @@ Script to demonstrate verifiable data extraction functionality.
 
 import re
 from base_cookbook import BaseCookbook
-from src.rag.extract_verifiable_data import extract_verifiable_data
-from src.rag.detect_number_in_text import detect_number_in_text
+from src.process_document.extract_verifiable_data import extract_verifiable_data
+from src.process_document.detect_number_in_text import detect_number_in_text
 
 
 class VerifiableDataCookbook(BaseCookbook):

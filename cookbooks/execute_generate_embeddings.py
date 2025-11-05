@@ -4,7 +4,7 @@ Script to demonstrate embeddings generation functionality.
 """
 
 from base_cookbook import BaseCookbook
-from src.rag.generate_embeddings import generate_embeddings
+from src.process_document.generate_embeddings import generate_embeddings
 
 
 class EmbeddingsCookbook(BaseCookbook):
