@@ -126,6 +126,7 @@ def main():
         "execute_detect_number_in_text.py",
         "execute_generate_chunks.py",
         "execute_generate_embeddings.py",
+        "execute_process_document.py",
     ]
 
     max_workers = args.workers
