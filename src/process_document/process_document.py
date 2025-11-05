@@ -52,6 +52,7 @@ def process_document(
             - chunks: List of text chunks
             - embeddings: List of embedding vectors for each chunk
             - chunks_with_numbers: List of booleans indicating which chunks contain numbers
+            - chunk_count: Total number of chunks
             - verifiable_facts: Extracted verifiable data (if extract_verifiable=True)
             - file_type: 'pdf' or 'text'
             - (For PDFs) metadata, page_count, file_name
@@ -82,7 +83,7 @@ def process_document(
 
     # Generate chunks from text
     chunks = generate_chunks(
-        text_content, chunk_size=chunk_size, chunk_overlap=chunk_overlap, model=model
+        text_content, chunk_size=chunk_size, chunk_overlap=chunk_overlap
     )
 
     # Generate embeddings for chunks
@@ -95,6 +96,7 @@ def process_document(
     result["chunks"] = chunks
     result["embeddings"] = embeddings
     result["chunks_with_numbers"] = chunks_with_numbers
+    result["chunk_count"] = len(chunks)
 
     # Extract verifiable data if enabled
     if extract_verifiable:

@@ -4,6 +4,8 @@ Script to demonstrate end-to-end document processing with RAG pipeline.
 """
 
 import base64
+import sys
+from io import StringIO
 from base_cookbook import BaseCookbook
 from src.process_document.process_document import process_document
 
@@ -17,6 +19,19 @@ class ProcessDocumentCookbook(BaseCookbook):
     def run(self):
         # Path to the sample PDF
         pdf_path = self.data_dir / "sample.pdf"
+
+        # Capture stdout to save to file
+        output_capture = StringIO()
+        original_stdout = sys.stdout
+
+        class TeeOutput:
+            def write(self, text):
+                original_stdout.write(text)
+                output_capture.write(text)
+            def flush(self):
+                original_stdout.flush()
+
+        sys.stdout = TeeOutput()
 
         self.print_header(f"Processing Document: {pdf_path.name}")
 
@@ -98,6 +113,13 @@ class ProcessDocumentCookbook(BaseCookbook):
             print(f"\n📁 Verifiable facts saved to: {verifiable_json}")
 
         self.print_success("Successfully processed document!", output_json)
+
+        # Restore original stdout and save output to file
+        sys.stdout = original_stdout
+        output_text = output_capture.getvalue()
+        output_file = self.output_dir / f"{pdf_path.stem}_output.txt"
+        output_file.write_text(output_text, encoding="utf-8")
+        print(f"📝 Output saved to: {output_file}")
 
 
 if __name__ == "__main__":

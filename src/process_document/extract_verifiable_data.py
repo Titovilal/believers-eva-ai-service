@@ -7,14 +7,13 @@ import json
 from typing import List, Dict, Any
 from openai import OpenAI
 
-from ..utils.constants import DEFAULT_VERIFIABLE_MODEL, DEFAULT_VERIFIABLE_TEMPERATURE
+from ..utils.constants import DEFAULT_VERIFIABLE_MODEL
 
 
 def extract_verifiable_data(
     chunks: List[str],
     chunks_with_numbers: List[bool],
     model: str = DEFAULT_VERIFIABLE_MODEL,
-    temperature: float = DEFAULT_VERIFIABLE_TEMPERATURE,
 ) -> Dict[str, Any]:
     """
     Analyze chunks containing numbers and extract verifiable data using AI.
@@ -96,7 +95,6 @@ If you don't find verifiable data, return an empty array."""
                             "content": f"Analyze the following text and extract verifiable data:\n\n{chunk_text}",
                         },
                     ],
-                    temperature=temperature,
                     response_format={"type": "json_object"},
                 )
 

@@ -14,7 +14,6 @@ DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
 # Verifiable data extraction constants
 DEFAULT_EXTRACT_VERIFIABLE = True
 DEFAULT_VERIFIABLE_MODEL = "gpt-5-mini"
-DEFAULT_VERIFIABLE_TEMPERATURE = 0.1
 
 # Language detection constants
 DEFAULT_LANGUAGE = "en"
