@@ -44,7 +44,7 @@ def process_document(
         model: OpenAI embedding model (default: "text-embedding-3-small")
         lang: Language code for number detection (default: "es")
         extract_verifiable: If True, extract verifiable data from chunks (default: True)
-        verifiable_model: OpenAI chat model for verifiable data extraction (default: "gpt-4o-mini")
+        verifiable_model: OpenAI chat model for verifiable data extraction (default: "gpt-5-mini")
 
     Returns:
         dict: Document content and metadata including:

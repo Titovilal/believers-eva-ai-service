@@ -105,19 +105,13 @@ class ProcessDocumentCookbook(BaseCookbook):
         # Save full result to JSON
         output_json = self.save_json_file(result, f"{pdf_path.stem}_processed.json")
 
-        # Save just verifiable facts to separate file
-        if "verifiable_facts" in result:
-            verifiable_json = self.save_json_file(
-                result["verifiable_facts"], f"{pdf_path.stem}_verifiable_facts.json"
-            )
-            print(f"\n📁 Verifiable facts saved to: {verifiable_json}")
 
         self.print_success("Successfully processed document!", output_json)
 
         # Restore original stdout and save output to file
         sys.stdout = original_stdout
         output_text = output_capture.getvalue()
-        output_file = self.output_dir / f"{pdf_path.stem}_output.txt"
+        output_file = self.output_dir / f"{pdf_path.stem}_process_document.txt"
         output_file.write_text(output_text, encoding="utf-8")
         print(f"📝 Output saved to: {output_file}")
 

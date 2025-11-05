@@ -55,20 +55,52 @@ class VerifiableDataCookbook(BaseCookbook):
 
         self.print_header("Analyzing text chunks for verifiable data...")
 
-        print(f"\n📊 PROCESSING {len(sample_chunks)} TEXT CHUNKS:")
+        print(f"\n📊 TOTAL CHUNKS: {len(sample_chunks)}")
         print(f"  Chunks with numbers: {sum(chunks_with_numbers)}")
+
+        # Filter to only process chunks that contain numbers and keep track of original indices
+        filtered_chunks = []
+        original_indices = []
+        for i, chunk in enumerate(sample_chunks):
+            if chunks_with_numbers[i]:
+                filtered_chunks.append(chunk)
+                original_indices.append(i)
+
+        filtered_chunks_with_numbers = [True] * len(filtered_chunks)
+
+        print(f"  Chunks to process (only with numbers): {len(filtered_chunks)}")
         print("-" * 80)
 
-        # Extract verifiable data
+        # Extract verifiable data only from chunks with numbers
         result = extract_verifiable_data(
-            chunks=sample_chunks,
-            chunks_with_numbers=chunks_with_numbers,
+            chunks=filtered_chunks,
+            chunks_with_numbers=filtered_chunks_with_numbers,
         )
+
+        # Filter statements to only include those with numbers
+        filtered_verifiable_facts = []
+        for fact_group in result["verifiable_facts"]:
+            if "statements" in fact_group and fact_group["statements"]:
+                # Filter statements that contain numbers
+                statements_with_numbers = [
+                    stmt for stmt in fact_group["statements"]
+                    if detect_number_in_text(stmt, lang="en")
+                ]
+
+                if statements_with_numbers:
+                    filtered_fact_group = fact_group.copy()
+                    filtered_fact_group["statements"] = statements_with_numbers
+                    # Restore original chunk index
+                    filtered_fact_group["chunk_index"] = original_indices[fact_group["chunk_index"]]
+                    filtered_verifiable_facts.append(filtered_fact_group)
 
         # Reorder result to put summary first in JSON
         result = {
-            "summary": result["summary"],
-            "verifiable_facts": result["verifiable_facts"]
+            "summary": {
+                "total_chunks_analyzed": len(filtered_chunks),
+                "total_statements_extracted": sum(len(fg["statements"]) for fg in filtered_verifiable_facts)
+            },
+            "verifiable_facts": filtered_verifiable_facts
         }
 
         # Display results
