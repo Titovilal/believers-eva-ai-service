@@ -8,7 +8,6 @@ from ..utils.constants import (
     DEFAULT_CHUNK_SIZE,
     DEFAULT_CHUNK_OVERLAP,
     DEFAULT_CHUNK_SEPARATORS,
-    DEFAULT_EMBEDDING_MODEL,
 )
 
 
@@ -16,7 +15,6 @@ def generate_chunks(
     text: str,
     chunk_size: int = DEFAULT_CHUNK_SIZE,
     chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
-    model: str = DEFAULT_EMBEDDING_MODEL,
 ) -> List[str]:
     """
     Generate chunks from text using Recursive Character Text Splitting.
@@ -25,7 +23,6 @@ def generate_chunks(
         text: Input text to chunk
         chunk_size: Maximum number of characters per chunk (default: 512)
         chunk_overlap: Number of characters to overlap between chunks (default: 0)
-        model: OpenAI model for embeddings (not used in chunking)
 
     Returns:
         List[str]: List of text chunks
