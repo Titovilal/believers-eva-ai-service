@@ -68,7 +68,7 @@ def process_document(
 
     # Check if it's a PDF by looking at the file signature
     if decoded_data.startswith(b"%PDF"):
-        result = _process_pdf(decoded_data, enable_image_annotation)
+        result = _parse_pdf(decoded_data, enable_image_annotation)
         text_content = result["text"]
     else:
         # Try to decode as text
@@ -86,11 +86,11 @@ def process_document(
         text_content, chunk_size=chunk_size, chunk_overlap=chunk_overlap
     )
 
-    # Generate embeddings for chunks
-    embeddings = generate_embeddings(chunks, model=model)
-
     # Detect which chunks contain numbers
     chunks_with_numbers = [detect_number_in_text(chunk, lang) for chunk in chunks]
+
+    # Generate embeddings for chunks
+    embeddings = generate_embeddings(chunks, model=model)
 
     # Add processing results to the result dictionary
     result["chunks"] = chunks
@@ -151,7 +151,7 @@ def _filter_verifiable_statements_with_numbers(
     }
 
 
-def _process_pdf(
+def _parse_pdf(
     pdf_data: bytes, enable_image_annotation: bool = DEFAULT_ENABLE_IMAGE_ANNOTATION
 ) -> dict:
     """
