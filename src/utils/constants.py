@@ -20,10 +20,9 @@ DEFAULT_LANGUAGE = "en"
 
 # PDF parsing and image annotation constants
 DEFAULT_ENABLE_IMAGE_ANNOTATION = True
+DEFAULT_FORCE_OCR = False  # By default, prefer native text extraction (faster)
 IMAGE_ANNOTATION_MODEL = "gpt-5-nano"
 IMAGE_ANNOTATION_MAX_TOKENS = 512
-IMAGE_ANNOTATION_PROMPT = (
-    "Describe the image in three sentences. Be concise and accurate."
-)
+IMAGE_ANNOTATION_PROMPT = "Describe the picture."
 IMAGE_ANNOTATION_TIMEOUT = 34
 IMAGE_ANNOTATION_API_URL = "https://api.openai.com/v1/chat/completions"

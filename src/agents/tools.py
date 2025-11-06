@@ -1,8 +1,8 @@
-from random import random
+from random import uniform
 from src.agents.models import BaseDeps
 from pydantic_ai import RunContext
 
-from utils.logs import log_exception, log_info
+from src.utils.logs import log_exception, log_info
 
 
 async def get_city_temperature(ctx: RunContext[BaseDeps], city: str) -> str:
@@ -22,7 +22,7 @@ async def get_city_temperature(ctx: RunContext[BaseDeps], city: str) -> str:
         # Example: inference_time = ctx.deps.inference_time
         # More at https://ai.pydantic.dev/dependencies
 
-        temperature = random.uniform(0, 40)
+        temperature = uniform(0, 40)
         return f"Current temperature in {city}: {temperature:.1f}°C"
 
     except Exception as e:

@@ -14,6 +14,7 @@ from .detect_number_in_text import detect_number_in_text
 from .extract_verifiable_data import extract_verifiable_data
 from ..utils.constants import (
     DEFAULT_ENABLE_IMAGE_ANNOTATION,
+    DEFAULT_FORCE_OCR,
     DEFAULT_CHUNK_SIZE,
     DEFAULT_CHUNK_OVERLAP,
     DEFAULT_EMBEDDING_MODEL,
@@ -26,6 +27,7 @@ from ..utils.constants import (
 def process_document(
     base64_data: str,
     enable_image_annotation: bool = DEFAULT_ENABLE_IMAGE_ANNOTATION,
+    force_ocr: bool = DEFAULT_FORCE_OCR,
     chunk_size: int = DEFAULT_CHUNK_SIZE,
     chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
     model: str = DEFAULT_EMBEDDING_MODEL,
@@ -39,6 +41,7 @@ def process_document(
     Args:
         base64_data: Base64 encoded document string (typical from request body)
         enable_image_annotation: If True, annotate images in PDFs with AI descriptions
+        force_ocr: If True, force OCR even for PDFs with native text (default: False)
         chunk_size: Maximum number of characters per chunk (default: 512)
         chunk_overlap: Number of characters to overlap between chunks (default: 0)
         model: OpenAI embedding model (default: "text-embedding-3-small")
@@ -68,7 +71,7 @@ def process_document(
 
     # Check if it's a PDF by looking at the file signature
     if decoded_data.startswith(b"%PDF"):
-        result = _parse_pdf(decoded_data, enable_image_annotation)
+        result = _parse_pdf(decoded_data, enable_image_annotation, force_ocr)
         text_content = result["text"]
     else:
         # Try to decode as text
@@ -152,7 +155,9 @@ def _filter_verifiable_statements_with_numbers(
 
 
 def _parse_pdf(
-    pdf_data: bytes, enable_image_annotation: bool = DEFAULT_ENABLE_IMAGE_ANNOTATION
+    pdf_data: bytes,
+    enable_image_annotation: bool = DEFAULT_ENABLE_IMAGE_ANNOTATION,
+    force_ocr: bool = DEFAULT_FORCE_OCR,
 ) -> dict:
     """
     Process PDF file data.
@@ -160,6 +165,7 @@ def _parse_pdf(
     Args:
         pdf_data: Raw PDF file bytes
         enable_image_annotation: If True, annotate images with AI descriptions
+        force_ocr: If True, force OCR even for PDFs with native text
 
     Returns:
         dict: Parsed PDF content and metadata
@@ -171,7 +177,7 @@ def _parse_pdf(
 
     try:
         # Parse the PDF using the parse_pdf function
-        result = parse_pdf(temp_path, enable_image_annotation)
+        result = parse_pdf(temp_path, enable_image_annotation, force_ocr)
         result["file_type"] = "pdf"
         return result
     finally:

@@ -4,6 +4,7 @@ Data models for API interactions.
 """
 
 from pydantic import BaseModel
+from typing import Optional, List, Any, Literal
 
 
 class ChatRequest(BaseModel):
@@ -12,5 +13,16 @@ class ChatRequest(BaseModel):
     agent_type: str = "simple"
 
 
+class ExecutionStep(BaseModel):
+    """Represents a single step in the execution flow"""
+
+    type: Literal["user_prompt", "tool_call", "tool_return", "text"]
+    content: Any
+    timestamp: Optional[str] = None
+    tool_name: Optional[str] = None
+    tool_call_id: Optional[str] = None
+
+
 class ChatResponse(BaseModel):
     response: str
+    execution_flow: Optional[List[ExecutionStep]] = None

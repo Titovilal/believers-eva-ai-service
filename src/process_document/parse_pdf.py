@@ -51,7 +51,9 @@ def _get_openai_vlm_options():
     return options
 
 
-def parse_pdf(pdf_path: str | Path, enable_image_annotation: bool = False) -> dict:
+def parse_pdf(
+    pdf_path: str | Path, enable_image_annotation: bool = False, force_ocr: bool = False
+) -> dict:
     """
     Parse a PDF file and extract all text content with metadata using Docling.
 
@@ -59,6 +61,8 @@ def parse_pdf(pdf_path: str | Path, enable_image_annotation: bool = False) -> di
         pdf_path: Path to the PDF file to parse
         enable_image_annotation: If True, annotate images with AI-generated descriptions.
                                 Requires OPENAI_API_KEY environment variable
+        force_ocr: If True, force OCR even for PDFs with native text.
+                  If False (default), prefer native text extraction (faster)
 
     Returns:
         dict: Dictionary containing:
@@ -81,24 +85,26 @@ def parse_pdf(pdf_path: str | Path, enable_image_annotation: bool = False) -> di
         raise ValueError(f"File must be a PDF: {pdf_path}")
 
     try:
-        # Configure pipeline options for image annotation if enabled
+        # Configure pipeline options
+        pipeline_options = PdfPipelineOptions()
+
+        # Configure OCR: by default, prefer native text (faster)
+        pipeline_options.do_ocr = force_ocr
+
+        # Configure image annotation if enabled
         if enable_image_annotation:
-            pipeline_options = PdfPipelineOptions(
-                enable_remote_services=True  # Required for picture descriptions
-            )
+            pipeline_options.enable_remote_services = True
             pipeline_options.do_picture_description = True
             pipeline_options.picture_description_options = _get_openai_vlm_options()
 
-            converter = DocumentConverter(
-                format_options={
-                    InputFormat.PDF: PdfFormatOption(
-                        pipeline_options=pipeline_options,
-                    )
-                }
-            )
-        else:
-            # Initialize standard Docling document converter
-            converter = DocumentConverter()
+        # Initialize document converter with pipeline options
+        converter = DocumentConverter(
+            format_options={
+                InputFormat.PDF: PdfFormatOption(
+                    pipeline_options=pipeline_options,
+                )
+            }
+        )
 
         # Convert the PDF document
         result = converter.convert(str(pdf_path))
