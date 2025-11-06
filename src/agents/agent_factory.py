@@ -10,7 +10,8 @@ from pydantic_ai import Agent, ModelMessage
 from pydantic_ai.result import FinalResult
 from pydantic_ai.models.openai import OpenAIChatModel
 
-from utils.logs import log_info
+from src.agents.tools import get_city_temperature
+from src.utils.logs import log_info
 from src.agents.models import BaseDeps
 
 
@@ -61,7 +62,7 @@ class SimpleAgent(BaseAgent):
     def setup(self):
         """Setup the agent with basic dependencies"""
         self.deps = BaseDeps()
-        self.agent = Agent(self.model, deps_type=BaseDeps)
+        self.agent = Agent(self.model, deps_type=BaseDeps, tools=[get_city_temperature])
 
 
 class AgentFactory:

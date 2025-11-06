@@ -81,7 +81,9 @@ class VerifiableDataCookbook(BaseCookbook):
         verifiable_facts_unfiltered = []
         for fact_group in extraction_result["verifiable_facts"]:
             restored_fact_group = fact_group.copy()
-            restored_fact_group["chunk_index"] = original_indices[fact_group["chunk_index"]]
+            restored_fact_group["chunk_index"] = original_indices[
+                fact_group["chunk_index"]
+            ]
             verifiable_facts_unfiltered.append(restored_fact_group)
 
         # Filter statements to only include those with numbers
@@ -90,7 +92,8 @@ class VerifiableDataCookbook(BaseCookbook):
             if "statements" in fact_group and fact_group["statements"]:
                 # Filter statements that contain numbers
                 statements_with_numbers = [
-                    stmt for stmt in fact_group["statements"]
+                    stmt
+                    for stmt in fact_group["statements"]
                     if detect_number_in_text(stmt, lang="en")
                 ]
 
@@ -103,11 +106,15 @@ class VerifiableDataCookbook(BaseCookbook):
         result = {
             "summary": {
                 "total_chunks_analyzed": len(filtered_chunks),
-                "total_statements_extracted_unfiltered": sum(len(fg["statements"]) for fg in verifiable_facts_unfiltered),
-                "total_statements_extracted_filtered": sum(len(fg["statements"]) for fg in verifiable_facts_filtered)
+                "total_statements_extracted_unfiltered": sum(
+                    len(fg["statements"]) for fg in verifiable_facts_unfiltered
+                ),
+                "total_statements_extracted_filtered": sum(
+                    len(fg["statements"]) for fg in verifiable_facts_filtered
+                ),
             },
             "verifiable_facts_unfiltered": verifiable_facts_unfiltered,
-            "verifiable_facts_filtered": verifiable_facts_filtered
+            "verifiable_facts_filtered": verifiable_facts_filtered,
         }
 
         # Display results
@@ -115,10 +122,16 @@ class VerifiableDataCookbook(BaseCookbook):
 
         print("\nSummary:")
         print(f"  Total chunks analyzed: {result['summary']['total_chunks_analyzed']}")
-        print(f"  Total statements extracted (unfiltered): {result['summary']['total_statements_extracted_unfiltered']}")
-        print(f"  Total statements extracted (filtered): {result['summary']['total_statements_extracted_filtered']}")
+        print(
+            f"  Total statements extracted (unfiltered): {result['summary']['total_statements_extracted_unfiltered']}"
+        )
+        print(
+            f"  Total statements extracted (filtered): {result['summary']['total_statements_extracted_filtered']}"
+        )
 
-        print("\n🔍 Verifiable facts by chunk (FILTERED - only statements with numbers):")
+        print(
+            "\n🔍 Verifiable facts by chunk (FILTERED - only statements with numbers):"
+        )
         print("-" * 80)
 
         for fact_group in result["verifiable_facts_filtered"]:

@@ -28,6 +28,7 @@ class ProcessDocumentCookbook(BaseCookbook):
             def write(self, text):
                 original_stdout.write(text)
                 output_capture.write(text)
+
             def flush(self):
                 original_stdout.flush()
 
@@ -42,7 +43,12 @@ class ProcessDocumentCookbook(BaseCookbook):
             base64_data = base64.b64encode(pdf_bytes).decode("utf-8")
 
         # Process the document
-        print("🔄 Processing document (parsing, chunking, embeddings, verifiable data)...")
+        print(
+            "🔄 Processing document (parsing, chunking, embeddings, verifiable data)..."
+        )
+        print(
+            "   Using native text extraction (force_ocr=False) for faster processing..."
+        )
         result = process_document(base64_data)
 
         # Display basic info
@@ -80,7 +86,9 @@ class ProcessDocumentCookbook(BaseCookbook):
         print(f"  Total Embeddings: {len(embeddings)}")
         print(f"  Embedding Dimension: {len(embeddings[0]) if embeddings else 0}")
         if embeddings:
-            print(f"  First embedding preview: [{embeddings[0][0]:.6f}, {embeddings[0][1]:.6f}, ...]")
+            print(
+                f"  First embedding preview: [{embeddings[0][0]:.6f}, {embeddings[0][1]:.6f}, ...]"
+            )
 
         # Display verifiable facts
         if "verifiable_facts" in result:
@@ -104,7 +112,6 @@ class ProcessDocumentCookbook(BaseCookbook):
 
         # Save full result to JSON
         output_json = self.save_json_file(result, f"{pdf_path.stem}_processed.json")
-
 
         self.print_success("Successfully processed document!", output_json)
 
