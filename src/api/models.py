@@ -7,12 +7,6 @@ from pydantic import BaseModel
 from typing import Optional, List, Any, Literal
 
 
-class ChatRequest(BaseModel):
-    message: str = "Hello!"
-    model: str = "google/gemini-2.5-flash"
-    agent_type: str = "simple"
-
-
 class ExecutionStep(BaseModel):
     """Represents a single step in the execution flow"""
 
@@ -21,6 +15,13 @@ class ExecutionStep(BaseModel):
     timestamp: Optional[str] = None
     tool_name: Optional[str] = None
     tool_call_id: Optional[str] = None
+
+
+class ChatRequest(BaseModel):
+    message: str = "Hello!"
+    model: str = "google/gemini-2.5-flash"
+    agent_type: str = "simple"
+    history: Optional[List[ExecutionStep]] = None
 
 
 class ChatResponse(BaseModel):

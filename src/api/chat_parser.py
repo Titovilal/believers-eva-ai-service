@@ -19,7 +19,7 @@ def parse_request_to_pydantic_ai(request: ChatRequest) -> dict:
     """
     return {
         "user_question": request.message.strip(),
-        "message_history": [],  # Could be extended to support conversation history
+        "message_history": request.history if request.history else [],
         "agent_type": request.agent_type,
         "model": request.model,
     }
