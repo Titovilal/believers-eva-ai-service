@@ -68,12 +68,7 @@ async def process_doc(request: DocumentRequest):
         base64_data=request.base64_data,
         enable_image_annotation=request.enable_image_annotation,
         force_ocr=request.force_ocr,
-        chunk_size=request.chunk_size,
-        chunk_overlap=request.chunk_overlap,
-        model=request.model,
         lang=request.lang,
-        extract_verifiable=request.extract_verifiable,
-        verifiable_model=request.verifiable_model,
     )
     return result
 

@@ -45,12 +45,7 @@ class DocumentRequest(BaseModel):
     base64_data: str
     enable_image_annotation: bool = DEFAULT_ENABLE_IMAGE_ANNOTATION
     force_ocr: bool = DEFAULT_FORCE_OCR
-    chunk_size: int = DEFAULT_CHUNK_SIZE
-    chunk_overlap: int = DEFAULT_CHUNK_OVERLAP
-    model: str = DEFAULT_EMBEDDING_MODEL
     lang: str = DEFAULT_LANGUAGE
-    extract_verifiable: bool = DEFAULT_EXTRACT_VERIFIABLE
-    verifiable_model: str = DEFAULT_VERIFIABLE_MODEL
 
 
 class DocumentResponse(BaseModel):
