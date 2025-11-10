@@ -8,55 +8,72 @@ import asyncio
 from typing import List, Dict, Any
 from openai import AsyncOpenAI
 
-from ..utils.constants import DEFAULT_VERIFIABLE_MODEL
+from ..utils.constants import DEFAULT_VERIFIABLE_MODEL, DEFAULT_VERIFIABLE_BATCH_SIZE
 
 
-async def _process_chunk_async(
+async def _process_batch_async(
     client: AsyncOpenAI,
-    chunk_index: int,
-    chunk_text: str,
+    batch: List[tuple],
     model: str,
     system_prompt: str,
-) -> Dict[str, Any]:
-    """Process a single chunk asynchronously."""
+) -> List[Dict[str, Any]]:
+    """Process a batch of chunks asynchronously."""
     try:
+        # Prepare the content with all chunks in the batch
+        batch_content = "Analyze the following text chunks and extract verifiable data from each one:\n\n"
+        for i, (chunk_index, chunk_text) in enumerate(batch):
+            batch_content += f"--- CHUNK {chunk_index} ---\n{chunk_text}\n\n"
+
         response = await client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": system_prompt},
-                {
-                    "role": "user",
-                    "content": f"Analyze the following text and extract verifiable data:\n\n{chunk_text}",
-                },
+                {"role": "user", "content": batch_content},
             ],
             response_format={"type": "json_object"},
         )
 
         extracted_json = json.loads(response.choices[0].message.content)
-        statements = extracted_json.get("statements", [])
+        usage = response.usage
 
-        if statements:
-            return {
+        # Process the response for each chunk
+        results = []
+        chunks_data = extracted_json.get("chunks", [])
+
+        for i, (chunk_index, _) in enumerate(batch):
+            chunk_data = chunks_data[i] if i < len(chunks_data) else {}
+            results.append({
                 "chunk_index": chunk_index,
-                "statements": statements,
-            }
-        return None
+                "statements": chunk_data.get("statements", []),
+                "usage": {
+                    "prompt_tokens": usage.prompt_tokens // len(batch),
+                    "completion_tokens": usage.completion_tokens // len(batch),
+                    "total_tokens": usage.total_tokens // len(batch),
+                },
+            })
+
+        return results
 
     except Exception as e:
         # Log error but continue processing other chunks
-        return {
-            "chunk_index": chunk_index,
-            "statements": [],
-            "error": str(e),
-        }
+        return [
+            {
+                "chunk_index": chunk_index,
+                "statements": [],
+                "error": str(e),
+                "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+            }
+            for chunk_index, _ in batch
+        ]
 
 
 async def _extract_verifiable_data_async(
     chunks_to_analyze: List[tuple],
     model: str,
     api_key: str,
+    batch_size: int = DEFAULT_VERIFIABLE_BATCH_SIZE,
 ) -> List[Dict[str, Any]]:
-    """Process all chunks in parallel."""
+    """Process chunks in batches to reduce API calls."""
     client = AsyncOpenAI(api_key=api_key)
 
     system_prompt = """You are an expert assistant in extracting verifiable and factual data from texts.
@@ -68,30 +85,47 @@ Your task is to analyze text fragments and extract short phrases that contain ve
 Extract short phrases (maximum 15-20 words) that contain this verifiable data.
 Each phrase should be concise but maintain enough context to be understood.
 
+You will receive multiple text chunks. For each chunk, extract the verifiable data.
+
 Respond ONLY with a valid JSON object with this structure:
 {
-    "statements": ["phrase with verifiable data 1", "phrase with verifiable data 2", ...]
+    "chunks": [
+        {"statements": ["phrase with verifiable data 1", "phrase with verifiable data 2", ...]},
+        {"statements": ["phrase with verifiable data 3", "phrase with verifiable data 4", ...]},
+        ...
+    ]
 }
 
-If you don't find verifiable data, return an empty array."""
+Return one object per chunk in the same order. If you don't find verifiable data in a chunk, return an empty array for that chunk."""
 
-    # Create tasks for all chunks
-    tasks = [
-        _process_chunk_async(client, chunk_index, chunk_text, model, system_prompt)
-        for chunk_index, chunk_text in chunks_to_analyze
+    # Group chunks into batches
+    batches = [
+        chunks_to_analyze[i:i + batch_size]
+        for i in range(0, len(chunks_to_analyze), batch_size)
     ]
 
-    # Process all chunks in parallel
-    results = await asyncio.gather(*tasks)
+    # Create tasks for all batches
+    tasks = [
+        _process_batch_async(client, batch, model, system_prompt)
+        for batch in batches
+    ]
 
-    # Filter out None results
-    return [result for result in results if result is not None]
+    # Process all batches in parallel
+    batch_results = await asyncio.gather(*tasks)
+
+    # Flatten results from all batches
+    results = []
+    for batch_result in batch_results:
+        results.extend(batch_result)
+
+    return results
 
 
 def extract_verifiable_data(
     chunks: List[str],
     chunks_with_numbers: List[bool],
     model: str = DEFAULT_VERIFIABLE_MODEL,
+    batch_size: int = DEFAULT_VERIFIABLE_BATCH_SIZE,
 ) -> Dict[str, Any]:
     """
     Analyze chunks containing numbers and extract verifiable data using AI.
@@ -99,8 +133,8 @@ def extract_verifiable_data(
     Args:
         chunks: List of text chunks
         chunks_with_numbers: Boolean list indicating which chunks contain numbers
-        model: OpenAI chat model to use for analysis (default: "gpt-5-mini")
-        temperature: Model temperature for generation (default: 0.1 for consistency)
+        model: OpenAI chat model to use for analysis
+        batch_size: Number of chunks to process in each batch (default: 5)
 
     Returns:
         dict: JSON structure containing extracted verifiable data with format:
@@ -115,6 +149,12 @@ def extract_verifiable_data(
                 "summary": {
                     "total_chunks_analyzed": int,
                     "total_statements_extracted": int
+                },
+                "usage": {
+                    "prompt_tokens": int,
+                    "completion_tokens": int,
+                    "total_tokens": int,
+                    "cost": float
                 }
             }
 
@@ -140,26 +180,45 @@ def extract_verifiable_data(
         return {
             "verifiable_facts": [],
             "summary": {"total_chunks_analyzed": 0, "total_statements_extracted": 0},
+            "usage": {
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0,
+                "cost": 0.0,
+            },
         }
 
     try:
         # Run async processing
         verifiable_data = asyncio.run(
-            _extract_verifiable_data_async(chunks_to_analyze, model, api_key)
+            _extract_verifiable_data_async(chunks_to_analyze, model, api_key, batch_size)
         )
 
-        # Count total statements extracted
+        # Count total statements and tokens
         total_statements = sum(
             len(item.get("statements", []))
             for item in verifiable_data
             if "error" not in item
         )
+        total_prompt_tokens = sum(item.get("usage", {}).get("prompt_tokens", 0) for item in verifiable_data)
+        total_completion_tokens = sum(item.get("usage", {}).get("completion_tokens", 0) for item in verifiable_data)
+        total_tokens = sum(item.get("usage", {}).get("total_tokens", 0) for item in verifiable_data)
+
+        # Calculate cost: gpt-5-mini (gpt-4o-mini): input $0.150 / 1M tokens, output $0.600 / 1M tokens
+        cost = (total_prompt_tokens * 0.15 + total_completion_tokens * 0.60) / 1_000_000
 
         return {
             "verifiable_facts": verifiable_data,
             "summary": {
                 "total_chunks_analyzed": len(chunks_to_analyze),
                 "total_statements_extracted": total_statements,
+            },
+            "usage": {
+                "prompt_tokens": total_prompt_tokens,
+                "completion_tokens": total_completion_tokens,
+                "total_tokens": total_tokens,
+                "cost": cost,
+                "model": model,
             },
         }
 
