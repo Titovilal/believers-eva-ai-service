@@ -3,12 +3,18 @@
 ## What It Does
 This is a FastAPI service that provides an AI chat interface using LLM agents and document processing capabilities. It allows users to send messages to AI agents and process documents (PDFs/text) through a REST API, supporting streaming responses, execution flow tracking, and verifiable data extraction via OpenRouter.
 
+### Main Endpoints
+- `/chat` - Standard chat endpoint with AI agents
+- `/chat/stream` - Streaming chat endpoint with AI agents
+- `/process-document` - Document processing endpoint (PDF/text)
+- `/health` - Health check endpoint
+
 ## Main Files
 
 ### API Layer
 - `main.py` - Entry point that starts the FastAPI server
-- `src/api/routes.py` - Defines API endpoints for chat (standard and streaming) and health checks
-- `src/api/models.py` - Request and response data models with execution flow tracking
+- `src/api/routes.py` - Defines API endpoints for chat (standard and streaming), document processing, and health checks
+- `src/api/models.py` - Request and response data models with execution flow tracking and document processing
 - `src/api/chat_parser.py` - Converts between API formats and pydantic-ai formats
 
 ### Agent System
@@ -40,10 +46,11 @@ This is a FastAPI service that provides an AI chat interface using LLM agents an
 6. The API returns the response to the user
 
 ### Document Processing Flow
-1. Document is received as base64-encoded data
+1. User sends a POST request to `/process-document` with base64-encoded document data
 2. System detects file type (PDF or text) and parses accordingly
 3. Text is chunked into semantic segments with configurable size/overlap
 4. Vector embeddings are generated for each chunk
 5. Chunks are analyzed for numeric content
 6. Verifiable facts with numbers are extracted (optional)
 7. Results include text, chunks, embeddings, numeric flags, and verifiable statements
+8. Response is returned with all processed data (TODO: upload to database)
