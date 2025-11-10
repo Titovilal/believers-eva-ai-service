@@ -28,27 +28,31 @@ def _get_openai_vlm_options():
 
     Requires environment variable:
         - OPENAI_API_KEY: OpenAI API key
+
+    Raises:
+        ValueError: If OPENAI_API_KEY is missing or model is not gpt-5-nano
     """
     api_key = os.environ.get("OPENAI_API_KEY")
-
     if not api_key:
         raise ValueError(
             "OPENAI_API_KEY environment variable is required for image annotation"
         )
 
-    options = PictureDescriptionApiOptions(
+    if IMAGE_ANNOTATION_MODEL != "gpt-5-nano":
+        raise ValueError(
+            f"Only 'gpt-5-nano' model is supported for image annotation, got '{IMAGE_ANNOTATION_MODEL}'"
+        )
+
+    return PictureDescriptionApiOptions(
         url=IMAGE_ANNOTATION_API_URL,
-        params=dict(
-            model=IMAGE_ANNOTATION_MODEL,
-            max_completion_tokens=IMAGE_ANNOTATION_MAX_TOKENS,
-        ),
-        headers={
-            "Authorization": f"Bearer {api_key}",
+        params={
+            "model": IMAGE_ANNOTATION_MODEL,
+            "max_completion_tokens": IMAGE_ANNOTATION_MAX_TOKENS,
         },
+        headers={"Authorization": f"Bearer {api_key}"},
         prompt=IMAGE_ANNOTATION_PROMPT,
         timeout=IMAGE_ANNOTATION_TIMEOUT,
     )
-    return options
 
 
 def parse_pdf(
@@ -70,6 +74,7 @@ def parse_pdf(
             - metadata: PDF metadata (title, author, page count, etc.)
             - page_count: Number of pages in the PDF
             - images: List of image annotations (if enabled)
+            - usage: Processing costs and metrics
 
     Raises:
         FileNotFoundError: If the PDF file doesn't exist
@@ -86,102 +91,91 @@ def parse_pdf(
 
     try:
         # Configure pipeline options
-        pipeline_options = PdfPipelineOptions()
+        pipeline_options = PdfPipelineOptions(do_ocr=force_ocr)
 
-        # Configure OCR: by default, prefer native text (faster)
-        pipeline_options.do_ocr = force_ocr
-
-        # Configure image annotation if enabled
         if enable_image_annotation:
             pipeline_options.enable_remote_services = True
             pipeline_options.do_picture_description = True
             pipeline_options.picture_description_options = _get_openai_vlm_options()
 
-        # Initialize document converter with pipeline options
+        # Initialize converter and process document
         converter = DocumentConverter(
             format_options={
-                InputFormat.PDF: PdfFormatOption(
-                    pipeline_options=pipeline_options,
-                )
+                InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
             }
         )
-
-        # Convert the PDF document
         result = converter.convert(str(pdf_path))
 
-        # Extract text content and process images
+        # Extract text and process images
         image_annotations = []
         full_text = result.document.export_to_markdown()
 
         if enable_image_annotation:
-            # Replace image placeholders with annotated descriptions
             for element, _ in result.document.iterate_items():
-                if isinstance(element, PictureItem):
-                    caption = element.caption_text(doc=result.document)
-                    annotations = element.annotations
+                if not isinstance(element, PictureItem):
+                    continue
 
-                    # Create annotated image section with <image> tags
-                    img_text = "<image>\n"
-                    if caption:
-                        img_text += f"**Caption:** {caption}\n\n"
-                    if annotations:
-                        img_text += "**Description:**\n"
-                        for annotation in annotations:
-                            # Extract just the text content from the annotation
-                            annotation_text = str(annotation)
-                            if "text=" in annotation_text:
-                                # Parse the annotation to get just the description text
-                                match = re.search(
-                                    r'text=["\'](.+?)["\']', annotation_text
-                                )
-                                if match:
-                                    annotation_text = match.group(1)
-                            img_text += f"{annotation_text}\n"
-                            image_annotations.append(
-                                {
-                                    "ref": str(element.self_ref),
-                                    "caption": caption,
-                                    "annotation": annotation_text,
-                                }
-                            )
-                    else:
-                        img_text += "*[No description available]*\n"
-                    img_text += "</image>"
+                caption = element.caption_text(doc=result.document)
+                annotations = element.annotations
 
-                    # Replace the placeholder in the markdown
-                    full_text = full_text.replace("<!-- image -->", img_text, 1)
+                # Build image section
+                img_parts = ["<image>"]
+                if caption:
+                    img_parts.append(f"**Caption:** {caption}\n")
 
-        # Extract metadata from the document
+                if annotations:
+                    img_parts.append("**Description:**")
+                    for annotation in annotations:
+                        # Extract text from annotation
+                        ann_text = str(annotation)
+                        if match := re.search(r'text=["\'](.+?)["\']', ann_text):
+                            ann_text = match.group(1)
+
+                        img_parts.append(ann_text)
+                        image_annotations.append({
+                            "ref": str(element.self_ref),
+                            "caption": caption,
+                            "annotation": ann_text,
+                        })
+                else:
+                    img_parts.append("*[No description available]*")
+
+                img_parts.append("</image>")
+                full_text = full_text.replace("<!-- image -->", "\n".join(img_parts), 1)
+
+        # Extract metadata and build response
         doc = result.document
-        pdf_metadata = {
-            "title": getattr(doc, "name", pdf_path.stem),
-            "author": "Unknown",
-            "subject": "Unknown",
-            "creator": "Unknown",
-            "producer": "Docling",
-        }
+        page_count = len(doc.pages) if hasattr(doc, "pages") and doc.pages else 1
 
-        # Count pages (try to get from document structure)
-        page_count = 0
-        if hasattr(doc, "pages") and doc.pages:
-            page_count = len(doc.pages)
-        else:
-            # Fallback: estimate from text if pages info not available
-            page_count = 1
+        # Calculate usage costs (Vision API: ~$0.15/1M tokens, ~500 tokens/image)
+        images_processed = len(image_annotations)
+        vision_tokens = images_processed * 500
+        vision_cost = vision_tokens * 0.15 / 1_000_000
 
-        result_dict = {
+        response = {
             "text": full_text,
-            "metadata": pdf_metadata,
+            "metadata": {
+                "title": getattr(doc, "name", pdf_path.stem),
+                "author": "Unknown",
+                "subject": "Unknown",
+                "creator": "Unknown",
+                "producer": "Docling",
+            },
             "page_count": page_count,
             "file_path": str(pdf_path),
             "file_name": pdf_path.name,
+            "usage": {
+                "ocr_used": force_ocr,
+                "images_annotated": images_processed,
+                "vision_tokens_estimated": vision_tokens,
+                "vision_cost": vision_cost,
+            },
         }
 
-        # Add image annotations if enabled
         if enable_image_annotation:
-            result_dict["images"] = image_annotations
+            response["images"] = image_annotations
 
-        return result_dict
+        return response
 
     except Exception as e:
         raise Exception(f"Error parsing PDF {pdf_path}: {str(e)}")

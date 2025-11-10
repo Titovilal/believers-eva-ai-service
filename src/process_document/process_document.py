@@ -5,6 +5,7 @@ Handles base64 encoded documents from requests, supports PDF and text files.
 
 import base64
 import tempfile
+import time
 from pathlib import Path
 
 from .parse_pdf import parse_pdf
@@ -59,20 +60,28 @@ def process_document(
             - verifiable_facts: Extracted verifiable data (if extract_verifiable=True)
             - file_type: 'pdf' or 'text'
             - (For PDFs) metadata, page_count, file_name
+            - processing_metrics: Dict with costs and processing time
 
     Raises:
         ValueError: If the file is neither PDF nor text, or if base64 is invalid
     """
+    # Track processing time
+    start_time = time.time()
+
     try:
         # Decode base64 data
         decoded_data = base64.b64decode(base64_data)
     except Exception as e:
         raise ValueError(f"Invalid base64 data: {str(e)}")
 
+    # Initialize cost tracking
+    pdf_usage = {}
+
     # Check if it's a PDF by looking at the file signature
     if decoded_data.startswith(b"%PDF"):
         result = _parse_pdf(decoded_data, enable_image_annotation, force_ocr)
         text_content = result["text"]
+        pdf_usage = result.get("usage", {})
     else:
         # Try to decode as text
         try:
@@ -93,7 +102,7 @@ def process_document(
     chunks_with_numbers = [detect_number_in_text(chunk, lang) for chunk in chunks]
 
     # Generate embeddings for chunks
-    embeddings = generate_embeddings(chunks, model=model)
+    embeddings, embeddings_usage = generate_embeddings(chunks, model=model)
 
     # Add processing results to the result dictionary
     result["chunks"] = chunks
@@ -101,14 +110,65 @@ def process_document(
     result["chunks_with_numbers"] = chunks_with_numbers
     result["chunk_count"] = len(chunks)
 
+    # Initialize verifiable data costs
+    verifiable_usage = {}
+
     # Extract verifiable data if enabled
     if extract_verifiable:
         verifiable_result = extract_verifiable_data(
             chunks, chunks_with_numbers, model=verifiable_model
         )
+        verifiable_usage = verifiable_result.get("usage", {})
         result["verifiable_facts"] = _filter_verifiable_statements_with_numbers(
             verifiable_result, lang
         )
+
+    # Calculate processing time
+    processing_time = time.time() - start_time
+
+    # Consolidate all costs and metrics
+    total_cost = (
+        pdf_usage.get("vision_cost", 0.0)
+        + embeddings_usage.get("cost", 0.0)
+        + verifiable_usage.get("cost", 0.0)
+    )
+
+    result["processing_metrics"] = {
+        "processing_time_seconds": round(processing_time, 2),
+        "total_chunks": len(chunks),
+        "costs": {
+            "image_annotation": {
+                "images_processed": pdf_usage.get("images_annotated", 0),
+                "tokens_estimated": pdf_usage.get("vision_tokens_estimated", 0),
+                "cost": pdf_usage.get("vision_cost", 0.0),
+            },
+            "ocr": {
+                "used": pdf_usage.get("ocr_used", False),
+                "cost": 0.0,  # OCR is included in Docling, no additional cost
+            },
+            "embeddings": {
+                "tokens": embeddings_usage.get("tokens", 0),
+                "model": embeddings_usage.get("model", model),
+                "cost": embeddings_usage.get("cost", 0.0),
+            },
+            "verifiable_data": {
+                "chunks_analyzed": verifiable_usage.get("total_tokens", 0) > 0,
+                "prompt_tokens": verifiable_usage.get("prompt_tokens", 0),
+                "completion_tokens": verifiable_usage.get("completion_tokens", 0),
+                "total_tokens": verifiable_usage.get("total_tokens", 0),
+                "model": verifiable_usage.get("model", verifiable_model),
+                "cost": verifiable_usage.get("cost", 0.0),
+            },
+            "total_cost": round(total_cost, 6),
+        },
+    }
+
+    # TODO: Add database upload step
+    # Upload processed document data to database:
+    # - Document metadata (file_type, page_count, etc.)
+    # - Text chunks with embeddings
+    # - Verifiable facts extracted
+    # - Link chunks with their corresponding embeddings and numeric flags
 
     return result
 

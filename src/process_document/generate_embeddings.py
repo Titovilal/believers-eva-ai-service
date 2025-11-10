@@ -10,23 +10,28 @@ from ..utils.constants import DEFAULT_EMBEDDING_MODEL
 
 def generate_embeddings(
     chunks: List[str], model: str = DEFAULT_EMBEDDING_MODEL
-) -> List[List[float]]:
+) -> tuple[List[List[float]], dict]:
     """
     Generate embeddings for a list of text chunks using OpenAI.
 
     Args:
         chunks: List of text chunks to embed
-        model: OpenAI embedding model (default: "text-embedding-3-small")
+        model: OpenAI embedding model (must be "text-embedding-3-small")
 
     Returns:
-        List[List[float]]: List of embedding vectors
+        tuple: (embeddings, usage_info) where:
+            - embeddings: List of embedding vectors
+            - usage_info: Dict with 'tokens' and 'cost' information
 
     Raises:
-        ValueError: If chunks is empty or OPENAI_API_KEY is missing
+        ValueError: If chunks is empty, model is not text-embedding-3-small, or OPENAI_API_KEY is missing
         Exception: If there's an error generating embeddings
     """
     if not chunks:
         raise ValueError("Chunks list cannot be empty")
+
+    if model != "text-embedding-3-small":
+        raise ValueError(f"Only 'text-embedding-3-small' model is supported, got '{model}'")
 
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
@@ -41,7 +46,16 @@ def generate_embeddings(
         # Extract embeddings from response
         embeddings = [item.embedding for item in response.data]
 
-        return embeddings
+        # Calculate cost: text-embedding-3-small: $0.02 / 1M tokens
+        tokens_used = response.usage.total_tokens
+
+        usage_info = {
+            "tokens": tokens_used,
+            "cost": tokens_used * 0.02 / 1_000_000,
+            "model": model,
+        }
+
+        return embeddings, usage_info
 
     except Exception as e:
         raise Exception(f"Error generating embeddings: {str(e)}")
