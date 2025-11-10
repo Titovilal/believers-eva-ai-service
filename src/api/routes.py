@@ -5,12 +5,13 @@ API route definitions and handlers.
 
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
-from src.api.models import ChatRequest, ChatResponse
+from src.api.models import ChatRequest, ChatResponse, DocumentRequest, DocumentResponse
 from src.api.chat_parser import (
     parse_request_to_pydantic_ai,
     parse_pydantic_ai_to_response,
 )
 from src.agents.agent_factory import AgentFactory
+from src.process_document.process_document import process_document
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -56,6 +57,25 @@ async def chat_stream(request: ChatRequest):
                 yield chunk
 
     return StreamingResponse(stream_generator(), media_type="text/plain")
+
+
+@router.post("/process-document", response_model=DocumentResponse)
+async def process_doc(request: DocumentRequest):
+    """
+    Endpoint to process a document (PDF or text) and extract structured information.
+    """
+    result = process_document(
+        base64_data=request.base64_data,
+        enable_image_annotation=request.enable_image_annotation,
+        force_ocr=request.force_ocr,
+        chunk_size=request.chunk_size,
+        chunk_overlap=request.chunk_overlap,
+        model=request.model,
+        lang=request.lang,
+        extract_verifiable=request.extract_verifiable,
+        verifiable_model=request.verifiable_model,
+    )
+    return result
 
 
 @router.get("/health")
