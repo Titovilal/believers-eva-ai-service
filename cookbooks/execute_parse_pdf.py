@@ -20,14 +20,7 @@ class PDFParserCookbook(BaseCookbook):
         self.print_header(f"Parsing PDF: {pdf_path.name}")
 
         # Parse PDF to text
-        result = parse_pdf(pdf_path)
-
-        # Display metadata
-        print("\n📄 PDF METADATA:")
-        print(f"  File Name: {result['file_name']}")
-        print(f"  Page Count: {result['page_count']}")
-        for key, value in result["metadata"].items():
-            print(f"  {key.title()}: {value}")
+        result = parse_pdf(pdf_path, force_ocr=True)
 
         # Display text content
         print("\n📝 EXTRACTING TEXT CONTENT:")
@@ -35,8 +28,8 @@ class PDFParserCookbook(BaseCookbook):
         text_content = result["text"]
 
         # Display first 2000 characters as preview
-        if len(text_content) > 2000:
-            print(text_content[:2000])
+        if len(text_content) > 100:
+            print(text_content[:100])
             print(f"\n... (truncated - total length: {len(text_content)} characters)")
         else:
             print(text_content)

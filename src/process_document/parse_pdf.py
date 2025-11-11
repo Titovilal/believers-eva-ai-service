@@ -5,7 +5,11 @@ Functions for parsing and extracting text from PDF files using Docling.
 
 import os
 import re
+import base64
+from io import BytesIO
 from pathlib import Path
+from pdf2image import convert_from_path
+from openai import OpenAI
 from docling.document_converter import DocumentConverter, PdfFormatOption
 from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import (
@@ -22,81 +26,90 @@ from ..utils.constants import (
 )
 
 
-def _get_openai_vlm_options():
-    """
-    Configure OpenAI Vision Language Model options for image annotation.
+# OpenAI Vision OCR prompts
+SYSTEM_PROMPT_BASE = """
+Convert the following document to markdown.
+Return only the markdown with no explanation text. Do not include delimiters like ```markdown or ```html.
 
-    Requires environment variable:
-        - OPENAI_API_KEY: OpenAI API key
-
-    Raises:
-        ValueError: If OPENAI_API_KEY is missing or model is not gpt-5-nano
-    """
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError(
-            "OPENAI_API_KEY environment variable is required for image annotation"
-        )
-
-    if IMAGE_ANNOTATION_MODEL != "gpt-5-nano":
-        raise ValueError(
-            f"Only 'gpt-5-nano' model is supported for image annotation, got '{IMAGE_ANNOTATION_MODEL}'"
-        )
-
-    return PictureDescriptionApiOptions(
-        url=IMAGE_ANNOTATION_API_URL,
-        params={
-            "model": IMAGE_ANNOTATION_MODEL,
-            "max_completion_tokens": IMAGE_ANNOTATION_MAX_TOKENS,
-        },
-        headers={"Authorization": f"Bearer {api_key}"},
-        prompt=IMAGE_ANNOTATION_PROMPT,
-        timeout=IMAGE_ANNOTATION_TIMEOUT,
-    )
+RULES:
+  - You must include all information on the page. Do not exclude headers, footers, or subtext.
+  - Return tables in markdown table format (using | for columns and - for headers).
+  - Charts & infographics must be interpreted to a markdown format. Prefer table format when applicable.
+  - Images must be described and wrapped as: <image>description of the image</image>
+  - Logos should be wrapped in brackets. Ex: <logo>Coca-Cola<logo>
+  - Watermarks should be wrapped in brackets. Ex: <watermark>OFFICIAL COPY<watermark>
+  - Page numbers should be wrapped in brackets. Ex: <page_number>14<page_number> or <page_number>9/22<page_number>
+  - Prefer using ☐ and ☑ for check boxes.
+"""
 
 
-def parse_pdf(
-    pdf_path: str | Path, enable_image_annotation: bool = False, force_ocr: bool = False
+def _consistency_prompt(prior_page: str) -> str:
+    """Generate consistency prompt with prior page reference."""
+    return f'Markdown must maintain consistent formatting with the following page: \n\n """{prior_page}"""'
+
+
+def _extract_and_process_images(document, full_text: str) -> tuple[str, list[dict]]:
+    """Extract and process images from document, adding annotations to text."""
+    image_annotations = []
+
+    for element, _ in document.iterate_items():
+        if not isinstance(element, PictureItem):
+            continue
+
+        caption = element.caption_text(doc=document)
+        annotations = element.annotations
+
+        # Build image section
+        img_parts = ["<image>"]
+        if caption:
+            img_parts.append(f"**Caption:** {caption}\n")
+
+        if annotations:
+            img_parts.append("**Description:**")
+            for annotation in annotations:
+                # Extract text from annotation
+                ann_text = str(annotation)
+                if match := re.search(r'text=["\'](.+?)["\']', ann_text):
+                    ann_text = match.group(1)
+
+                img_parts.append(ann_text)
+                image_annotations.append(
+                    {
+                        "ref": str(element.self_ref),
+                        "caption": caption,
+                        "annotation": ann_text,
+                    }
+                )
+        else:
+            img_parts.append("*[No description available]*")
+
+        img_parts.append("</image>")
+        full_text = full_text.replace("<!-- image -->", "\n".join(img_parts), 1)
+
+    return full_text, image_annotations
+
+
+def parse_pdf_with_docling(
+    pdf_path: Path, enable_image_annotation: bool = False
 ) -> dict:
-    """
-    Parse a PDF file and extract all text content with metadata using Docling.
-
-    Args:
-        pdf_path: Path to the PDF file to parse
-        enable_image_annotation: If True, annotate images with AI-generated descriptions.
-                                Requires OPENAI_API_KEY environment variable
-        force_ocr: If True, force OCR even for PDFs with native text.
-                  If False (default), prefer native text extraction (faster)
-
-    Returns:
-        dict: Dictionary containing:
-            - text: Extracted text from all pages (with image annotations if enabled)
-            - metadata: PDF metadata (title, author, page count, etc.)
-            - page_count: Number of pages in the PDF
-            - images: List of image annotations (if enabled)
-            - usage: Processing costs and metrics
-
-    Raises:
-        FileNotFoundError: If the PDF file doesn't exist
-        ValueError: If the file is not a PDF or OPENAI_API_KEY is missing
-        Exception: If there's an error parsing the PDF
-    """
-    pdf_path = Path(pdf_path)
-
-    if not pdf_path.exists():
-        raise FileNotFoundError(f"PDF file not found: {pdf_path}")
-
-    if not pdf_path.suffix.lower() == ".pdf":
-        raise ValueError(f"File must be a PDF: {pdf_path}")
-
+    """Parse PDF using Docling library with optional image annotation."""
     try:
         # Configure pipeline options
-        pipeline_options = PdfPipelineOptions(do_ocr=force_ocr)
+        pipeline_options = PdfPipelineOptions(do_ocr=False)
 
         if enable_image_annotation:
             pipeline_options.enable_remote_services = True
             pipeline_options.do_picture_description = True
-            pipeline_options.picture_description_options = _get_openai_vlm_options()
+            pipeline_options.picture_description_options = PictureDescriptionApiOptions(
+                url=IMAGE_ANNOTATION_API_URL,
+                params={
+                    "model": IMAGE_ANNOTATION_MODEL,
+                    "max_completion_tokens": IMAGE_ANNOTATION_MAX_TOKENS,
+                },
+                headers={"Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY')}"},
+                prompt=IMAGE_ANNOTATION_PROMPT,
+                timeout=IMAGE_ANNOTATION_TIMEOUT,
+            )
 
         # Initialize converter and process document
         converter = DocumentConverter(
@@ -107,41 +120,13 @@ def parse_pdf(
         result = converter.convert(str(pdf_path))
 
         # Extract text and process images
-        image_annotations = []
         full_text = result.document.export_to_markdown()
+        image_annotations = []
 
         if enable_image_annotation:
-            for element, _ in result.document.iterate_items():
-                if not isinstance(element, PictureItem):
-                    continue
-
-                caption = element.caption_text(doc=result.document)
-                annotations = element.annotations
-
-                # Build image section
-                img_parts = ["<image>"]
-                if caption:
-                    img_parts.append(f"**Caption:** {caption}\n")
-
-                if annotations:
-                    img_parts.append("**Description:**")
-                    for annotation in annotations:
-                        # Extract text from annotation
-                        ann_text = str(annotation)
-                        if match := re.search(r'text=["\'](.+?)["\']', ann_text):
-                            ann_text = match.group(1)
-
-                        img_parts.append(ann_text)
-                        image_annotations.append({
-                            "ref": str(element.self_ref),
-                            "caption": caption,
-                            "annotation": ann_text,
-                        })
-                else:
-                    img_parts.append("*[No description available]*")
-
-                img_parts.append("</image>")
-                full_text = full_text.replace("<!-- image -->", "\n".join(img_parts), 1)
+            full_text, image_annotations = _extract_and_process_images(
+                result.document, full_text
+            )
 
         # Extract metadata and build response
         doc = result.document
@@ -154,18 +139,9 @@ def parse_pdf(
 
         response = {
             "text": full_text,
-            "metadata": {
-                "title": getattr(doc, "name", pdf_path.stem),
-                "author": "Unknown",
-                "subject": "Unknown",
-                "creator": "Unknown",
-                "producer": "Docling",
-            },
             "page_count": page_count,
-            "file_path": str(pdf_path),
             "file_name": pdf_path.name,
             "usage": {
-                "ocr_used": force_ocr,
                 "images_annotated": images_processed,
                 "vision_tokens_estimated": vision_tokens,
                 "vision_cost": vision_cost,
@@ -179,3 +155,104 @@ def parse_pdf(
 
     except Exception as e:
         raise Exception(f"Error parsing PDF {pdf_path}: {str(e)}")
+
+
+def parse_pdf_with_raw_openai(pdf_path: Path) -> dict:
+    """Parse PDF using raw OpenAI Vision API by converting to images."""
+    try:
+        # Initialize OpenAI client
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+        # Convert PDF to images
+        images = convert_from_path(str(pdf_path), dpi=200)
+
+        markdown_content = []
+        total_tokens = 0
+        previous_markdown = None
+
+        # Process each page/image
+        for image in images:
+            # Convert PIL Image to base64
+            buffered = BytesIO()
+            image.save(buffered, format="PNG")
+            img_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+            # Build the prompt based on whether we have previous context
+            if previous_markdown is None:
+                # First page: base prompt only
+                prompt = SYSTEM_PROMPT_BASE
+            else:
+                # Subsequent pages: include consistency prompt with half of previous page
+                half_length = len(previous_markdown) // 2
+                format_reference = previous_markdown[:half_length]
+                prompt = (
+                    SYSTEM_PROMPT_BASE + "\n\n" + _consistency_prompt(format_reference)
+                )
+
+            # Call OpenAI Vision API
+            response = client.responses.create(
+                model="gpt-5-nano",
+                reasoning={"effort": "low"},
+                input=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "input_text", "text": prompt},
+                            {
+                                "type": "input_image",
+                                "image_url": f"data:image/png;base64,{img_base64}"
+                            },
+                        ],
+                    }
+                ],
+            )
+
+            # Extract markdown content from response
+            page_markdown = response.output_text
+            markdown_content.append(page_markdown)
+
+            # Save this page's markdown for next iteration
+            previous_markdown = page_markdown
+
+            # Track token usage
+            if hasattr(response, "usage"):
+                total_tokens += response.usage.total_tokens
+
+        # Combine all pages
+        full_text = "\n\n---\n\n".join(markdown_content)
+
+        # Calculate costs (gpt-4o: ~$2.50/1M input tokens, ~$10/1M output tokens)
+        # Vision tokens are typically higher, estimate ~1000 tokens per image input
+        estimated_cost = total_tokens * 5 / 1_000_000  # Average rate
+
+        return {
+            "text": full_text,
+            "page_count": len(images),
+            "file_name": pdf_path.name,
+            "usage": {
+                "total_tokens": total_tokens,
+                "pages_processed": len(images),
+                "estimated_cost": estimated_cost,
+            },
+        }
+
+    except Exception as e:
+        raise Exception(f"Error parsing PDF with OpenAI {pdf_path}: {str(e)}")
+
+
+def parse_pdf(
+    pdf_path: str | Path, enable_image_annotation: bool = False, force_ocr: bool = False
+) -> dict:
+    """Parse a PDF file and extract all text content in a markdown format"""
+    pdf_path = Path(pdf_path)
+
+    if not pdf_path.exists():
+        raise FileNotFoundError(f"PDF file not found: {pdf_path}")
+
+    if not pdf_path.suffix.lower() == ".pdf":
+        raise ValueError(f"File must be a PDF: {pdf_path}")
+
+    if force_ocr:
+        return parse_pdf_with_raw_openai(pdf_path)
+
+    return parse_pdf_with_docling(pdf_path, enable_image_annotation)
