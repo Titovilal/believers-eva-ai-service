@@ -3,6 +3,7 @@ Execute Verifiable Data Extraction
 Script to demonstrate verifiable data extraction functionality.
 """
 
+import asyncio
 import re
 from base_cookbook import BaseCookbook
 from src.process_document.extract_verifiable_data import extract_verifiable_data
@@ -37,7 +38,7 @@ class VerifiableDataCookbook(BaseCookbook):
 
         return chunks
 
-    def run(self):
+    async def run_async(self):
         # Path to the sample chunks file
         chunks_file = self.data_dir / "sample_chunks.txt"
 
@@ -72,7 +73,7 @@ class VerifiableDataCookbook(BaseCookbook):
         print("-" * 80)
 
         # Extract verifiable data only from chunks with numbers
-        extraction_result = extract_verifiable_data(
+        extraction_result = await extract_verifiable_data(
             chunks=filtered_chunks,
             chunks_with_numbers=filtered_chunks_with_numbers,
         )
@@ -161,6 +162,10 @@ class VerifiableDataCookbook(BaseCookbook):
         output_path = self.save_json_file(result, output_filename)
 
         self.print_success("Successfully extracted verifiable data!", output_path)
+
+    def run(self):
+        """Synchronous wrapper for async run method."""
+        asyncio.run(self.run_async())
 
 
 if __name__ == "__main__":

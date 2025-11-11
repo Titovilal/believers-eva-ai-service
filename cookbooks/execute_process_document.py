@@ -3,6 +3,7 @@ Execute Process Document
 Script to demonstrate end-to-end document processing with RAG pipeline.
 """
 
+import asyncio
 import base64
 import sys
 from io import StringIO
@@ -16,7 +17,7 @@ class ProcessDocumentCookbook(BaseCookbook):
     def __init__(self):
         super().__init__("PROCESS DOCUMENT EXECUTION")
 
-    def run(self):
+    async def run_async(self):
         # Path to the sample PDF
         pdf_path = self.data_dir / "sample.pdf"
 
@@ -49,7 +50,7 @@ class ProcessDocumentCookbook(BaseCookbook):
         print(
             "   Using native text extraction (force_ocr=False) for faster processing..."
         )
-        result = process_document(base64_data)
+        result = await process_document(base64_data)
 
         # Display basic info
         print("\n📄 DOCUMENT INFO:")
@@ -121,6 +122,10 @@ class ProcessDocumentCookbook(BaseCookbook):
         output_file = self.output_dir / f"{pdf_path.stem}_process_document.txt"
         output_file.write_text(output_text, encoding="utf-8")
         print(f"📝 Output saved to: {output_file}")
+
+    def run(self):
+        """Synchronous wrapper for async run method."""
+        asyncio.run(self.run_async())
 
 
 if __name__ == "__main__":
