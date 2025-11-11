@@ -25,7 +25,7 @@ from ..utils.constants import (
 )
 
 
-def process_document(
+async def process_document(
     base64_data: str,
     enable_image_annotation: bool = DEFAULT_ENABLE_IMAGE_ANNOTATION,
     force_ocr: bool = DEFAULT_FORCE_OCR,
@@ -102,7 +102,7 @@ def process_document(
     chunks_with_numbers = [detect_number_in_text(chunk, lang) for chunk in chunks]
 
     # Generate embeddings for chunks
-    embeddings, embeddings_usage = generate_embeddings(chunks, model=model)
+    embeddings, embeddings_usage = await generate_embeddings(chunks, model=model)
 
     # Add processing results to the result dictionary
     result["chunks"] = chunks
@@ -115,7 +115,7 @@ def process_document(
 
     # Extract verifiable data if enabled
     if extract_verifiable:
-        verifiable_result = extract_verifiable_data(
+        verifiable_result = await extract_verifiable_data(
             chunks, chunks_with_numbers, model=verifiable_model
         )
         verifiable_usage = verifiable_result.get("usage", {})

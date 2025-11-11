@@ -4,11 +4,11 @@ Generate embeddings for text chunks using OpenAI.
 
 import os
 from typing import List
-from openai import OpenAI
+from openai import AsyncOpenAI
 from ..utils.constants import DEFAULT_EMBEDDING_MODEL
 
 
-def generate_embeddings(
+async def generate_embeddings(
     chunks: List[str], model: str = DEFAULT_EMBEDDING_MODEL
 ) -> tuple[List[List[float]], dict]:
     """
@@ -38,10 +38,10 @@ def generate_embeddings(
         raise ValueError("OPENAI_API_KEY environment variable is required")
 
     try:
-        client = OpenAI(api_key=api_key)
+        client = AsyncOpenAI(api_key=api_key)
 
         # Generate embeddings for all chunks
-        response = client.embeddings.create(input=chunks, model=model)
+        response = await client.embeddings.create(input=chunks, model=model)
 
         # Extract embeddings from response
         embeddings = [item.embedding for item in response.data]

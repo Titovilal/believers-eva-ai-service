@@ -121,7 +121,7 @@ Return one object per chunk in the same order. If you don't find verifiable data
     return results
 
 
-def extract_verifiable_data(
+async def extract_verifiable_data(
     chunks: List[str],
     chunks_with_numbers: List[bool],
     model: str = DEFAULT_VERIFIABLE_MODEL,
@@ -190,9 +190,7 @@ def extract_verifiable_data(
 
     try:
         # Run async processing
-        verifiable_data = asyncio.run(
-            _extract_verifiable_data_async(chunks_to_analyze, model, api_key, batch_size)
-        )
+        verifiable_data = await _extract_verifiable_data_async(chunks_to_analyze, model, api_key, batch_size)
 
         # Count total statements and tokens
         total_statements = sum(

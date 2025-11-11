@@ -64,7 +64,7 @@ async def process_doc(request: DocumentRequest):
     """
     Endpoint to process a document (PDF or text) and extract structured information.
     """
-    result = process_document(
+    result = await process_document(
         base64_data=request.base64_data,
         enable_image_annotation=request.enable_image_annotation,
         force_ocr=request.force_ocr,
