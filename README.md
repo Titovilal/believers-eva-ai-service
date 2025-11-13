@@ -9,7 +9,7 @@ FastAPI service providing AI chat capabilities and document processing with LLM 
 - **Verifiable Data Extraction**: Automatic extraction of verifiable facts and numeric statements
 - **Embedding Generation**: Vector embeddings for semantic search and RAG applications
 - **Agent System**: Extensible agent factory pattern for different AI behaviors
-- **OpenRouter Integration**: Support for multiple LLM providers (Gemini, GPT, Claude, etc.)
+- **OpenRouter Integration**: Support for multiple LLM providers (Gemini, GPT, Claude, etc.) 
 
 ## Project Structure
 
