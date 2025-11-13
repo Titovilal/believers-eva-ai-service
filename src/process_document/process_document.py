@@ -152,10 +152,8 @@ async def process_document(
                 "cost": embeddings_usage.get("cost", 0.0),
             },
             "verifiable_data": {
-                "chunks_analyzed": verifiable_usage.get("total_tokens", 0) > 0,
-                "prompt_tokens": verifiable_usage.get("prompt_tokens", 0),
-                "completion_tokens": verifiable_usage.get("completion_tokens", 0),
-                "total_tokens": verifiable_usage.get("total_tokens", 0),
+                "input_tokens": verifiable_usage.get("input_tokens", 0),
+                "output_tokens": verifiable_usage.get("output_tokens", 0),
                 "model": verifiable_usage.get("model", verifiable_model),
                 "cost": verifiable_usage.get("cost", 0.0),
             },
@@ -202,14 +200,6 @@ def _filter_verifiable_statements_with_numbers(
                 filtered_verifiable_data.append(filtered_fact_group)
 
     return {
-        "summary": {
-            "total_chunks_analyzed": verifiable_result["summary"][
-                "total_chunks_analyzed"
-            ],
-            "total_statements_extracted": sum(
-                len(fg["statements"]) for fg in filtered_verifiable_data
-            ),
-        },
         "verifiable_data": filtered_verifiable_data,
     }
 

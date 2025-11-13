@@ -184,11 +184,10 @@ async def extract_verifiable_data(
     if not chunks_to_analyze:
         return {
             "verifiable_data": [],
-            "summary": {"total_chunks_analyzed": 0, "total_statements_extracted": 0},
             "usage": {
-                "prompt_tokens": 0,
-                "completion_tokens": 0,
-                "total_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "model": model,
                 "cost": 0.0,
             },
         }
@@ -197,15 +196,9 @@ async def extract_verifiable_data(
         # Run async processing
         verifiable_data = await _extract_verifiable_data_async(chunks_to_analyze, model, api_key, batch_size)
 
-        # Count total statements and tokens
-        total_statements = sum(
-            len(item.get("statements", []))
-            for item in verifiable_data
-            if "error" not in item
-        )
+        # Count total tokens
         total_prompt_tokens = sum(item.get("usage", {}).get("prompt_tokens", 0) for item in verifiable_data)
         total_completion_tokens = sum(item.get("usage", {}).get("completion_tokens", 0) for item in verifiable_data)
-        total_tokens = sum(item.get("usage", {}).get("total_tokens", 0) for item in verifiable_data)
 
         # Calculate cost using model pricing from constants
         cost = (total_prompt_tokens * VERIFIABLE_MODEL_INPUT_PRICE +
@@ -213,16 +206,11 @@ async def extract_verifiable_data(
 
         return {
             "verifiable_data": verifiable_data,
-            "summary": {
-                "total_chunks_analyzed": len(chunks_to_analyze),
-                "total_statements_extracted": total_statements,
-            },
             "usage": {
-                "prompt_tokens": total_prompt_tokens,
-                "completion_tokens": total_completion_tokens,
-                "total_tokens": total_tokens,
-                "cost": cost,
+                "input_tokens": total_prompt_tokens,
+                "output_tokens": total_completion_tokens,
                 "model": model,
+                "cost": cost,
             },
         }
 
