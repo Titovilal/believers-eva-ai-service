@@ -16,8 +16,6 @@ from .extract_verifiable_data import extract_verifiable_data
 from ..utils.constants import (
     PARSE_PDF_DEFAULT_ENABLE_IMAGE_ANNOTATION,
     PARSE_PDF_DEFAULT_FORCE_OCR,
-    CHUNK_DEFAULT_SIZE,
-    CHUNK_DEFAULT_OVERLAP,
     EMBEDDING_DEFAULT_MODEL,
     LANGUAGE_DEFAULT,
     VERIFIABLE_DEFAULT_EXTRACT,
@@ -29,12 +27,8 @@ async def process_document(
     base64_data: str,
     enable_image_annotation: bool = PARSE_PDF_DEFAULT_ENABLE_IMAGE_ANNOTATION,
     force_ocr: bool = PARSE_PDF_DEFAULT_FORCE_OCR,
-    chunk_size: int = CHUNK_DEFAULT_SIZE,
-    chunk_overlap: int = CHUNK_DEFAULT_OVERLAP,
-    model: str = EMBEDDING_DEFAULT_MODEL,
     lang: str = LANGUAGE_DEFAULT,
     extract_verifiable: bool = VERIFIABLE_DEFAULT_EXTRACT,
-    verifiable_model: str = VERIFIABLE_DEFAULT_MODEL,
 ) -> dict:
     """
     Process a base64 encoded document from a request.
@@ -43,12 +37,8 @@ async def process_document(
         base64_data: Base64 encoded document string (typical from request body)
         enable_image_annotation: If True, annotate images in PDFs with AI descriptions
         force_ocr: If True, force OCR even for PDFs with native text (default: False)
-        chunk_size: Maximum number of characters per chunk (default: 512)
-        chunk_overlap: Number of characters to overlap between chunks (default: 0)
-        model: OpenAI embedding model (default: "text-embedding-3-small")
-        lang: Language code for number detection (default: "es")
         extract_verifiable: If True, extract verifiable data from chunks (default: True)
-        verifiable_model: OpenAI chat model for verifiable data extraction (default: "gpt-5-mini")
+        lang: Language code for number detection (default: 'en')
 
     Returns:
         dict: Document content and metadata including:
@@ -95,14 +85,14 @@ async def process_document(
 
     # Generate chunks from text
     chunks = generate_chunks(
-        text_content, chunk_size=chunk_size, chunk_overlap=chunk_overlap
+        text_content,
     )
 
     # Detect which chunks contain numbers
     chunks_with_numbers = [detect_number_in_text(chunk, lang) for chunk in chunks]
 
     # Generate embeddings for chunks
-    embeddings, embeddings_usage = await generate_embeddings(chunks, model=model)
+    embeddings, embeddings_usage = await generate_embeddings(chunks)
 
     # Add processing results to the result dictionary
     result["chunks"] = chunks
@@ -116,11 +106,11 @@ async def process_document(
     # Extract verifiable data if enabled
     if extract_verifiable:
         verifiable_result = await extract_verifiable_data(
-            chunks, chunks_with_numbers, model=verifiable_model
+            chunks, chunks_with_numbers, model=VERIFIABLE_DEFAULT_MODEL
         )
         verifiable_usage = verifiable_result.get("usage", {})
         result["verifiable_data"] = _filter_verifiable_statements_with_numbers(
-            verifiable_result, lang
+            verifiable_result, LANGUAGE_DEFAULT
         )
 
     # Calculate processing time
@@ -128,7 +118,7 @@ async def process_document(
 
     # Consolidate all costs and metrics
     total_cost = (
-        pdf_usage.get("vision_cost", 0.0)
+        pdf_usage.get("cost", 0.0)
         + embeddings_usage.get("cost", 0.0)
         + verifiable_usage.get("cost", 0.0)
     )
@@ -137,27 +127,24 @@ async def process_document(
         "processing_time_seconds": round(processing_time, 2),
         "total_chunks": len(chunks),
         "costs": {
-            "image_annotation": {
-                "images_processed": pdf_usage.get("images_annotated", 0),
-                "tokens_estimated": pdf_usage.get("vision_tokens_estimated", 0),
-                "cost": pdf_usage.get("vision_cost", 0.0),
-            },
-            "ocr": {
-                "used": pdf_usage.get("ocr_used", False),
-                "cost": 0.0,  # OCR is included in Docling, no additional cost
+            "parse_pdf": {
+                "input_tokens": pdf_usage.get("input_tokens", 0),
+                "output_tokens": pdf_usage.get("output_tokens", 0),
+                "model": pdf_usage.get("model", ""),
+                "cost": pdf_usage.get("cost", 0.0),
             },
             "embeddings": {
-                "tokens": embeddings_usage.get("tokens", 0),
-                "model": embeddings_usage.get("model", model),
+                "input_tokens": embeddings_usage.get("input_tokens", 0),
+                "model": embeddings_usage.get("model", EMBEDDING_DEFAULT_MODEL),
                 "cost": embeddings_usage.get("cost", 0.0),
             },
             "verifiable_data": {
                 "input_tokens": verifiable_usage.get("input_tokens", 0),
                 "output_tokens": verifiable_usage.get("output_tokens", 0),
-                "model": verifiable_usage.get("model", verifiable_model),
+                "model": verifiable_usage.get("model", VERIFIABLE_DEFAULT_MODEL),
                 "cost": verifiable_usage.get("cost", 0.0),
             },
-            "total_cost": round(total_cost, 6),
+            "total_cost": round(total_cost, 3),
         },
     }
 

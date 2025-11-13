@@ -56,3 +56,4 @@ class DocumentResponse(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
     page_count: Optional[int] = None
     file_name: Optional[str] = None
+    processing_metrics: Optional[Dict[str, Any]] = None

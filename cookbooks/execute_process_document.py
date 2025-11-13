@@ -56,7 +56,6 @@ class ProcessDocumentCookbook(BaseCookbook):
         print("\n📄 DOCUMENT INFO:")
         print(f"  File Type: {result['file_type']}")
         if result["file_type"] == "pdf":
-            print(f"  File Name: {result['file_name']}")
             print(f"  Page Count: {result['page_count']}")
 
         # Display text preview
@@ -92,18 +91,12 @@ class ProcessDocumentCookbook(BaseCookbook):
             )
 
         # Display verifiable facts
-        if "verifiable_facts" in result:
-            self.print_section("✅ VERIFIABLE FACTS")
-            verifiable = result["verifiable_facts"]
-            print(
-                f"  Total Chunks Analyzed: {verifiable['summary']['total_chunks_analyzed']}"
-            )
-            print(
-                f"  Total Statements Extracted: {verifiable['summary']['total_statements_extracted']}"
-            )
+        if "verifiable_data" in result:
+            self.print_section("✅ VERIFIABLE DATA")
+            verifiable = result["verifiable_data"]
 
-            print("\n  Extracted Statements:")
-            for item in verifiable["verifiable_facts"]:
+            print("\n  Extracted Statements with Numbers:")
+            for item in verifiable["verifiable_data"]:
                 chunk_idx = item["chunk_index"]
                 statements = item.get("statements", [])
                 if statements:

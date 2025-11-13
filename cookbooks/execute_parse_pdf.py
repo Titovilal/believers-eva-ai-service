@@ -55,7 +55,9 @@ class PDFParserCookbook(BaseCookbook):
         print("=" * 80)
         result1 = parse_pdf(pdf_path, force_ocr=False, enable_image_annotation=False)
         self._display_result(result1, "Docling Standard")
-        output_path1 = self.save_text_file(result1["text"], f"{pdf_path.stem}_docling.md")
+        output_path1 = self.save_text_file(
+            result1["text"], f"{pdf_path.stem}_docling.md"
+        )
         print(f"✓ Saved to: {output_path1}")
 
         # Method 2: Docling with image annotation
