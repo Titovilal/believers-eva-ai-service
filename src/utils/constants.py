@@ -10,6 +10,7 @@ DEFAULT_CHUNK_SEPARATORS = ["\n\n", "\n", " ", ""]
 
 # Embedding constants
 DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
+EMBEDDING_MODEL_PRICE = 0.02  # USD per million tokens
 
 # Verifiable data extraction constants
 DEFAULT_EXTRACT_VERIFIABLE = True

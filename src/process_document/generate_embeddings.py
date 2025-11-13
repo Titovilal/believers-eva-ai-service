@@ -5,7 +5,7 @@ Generate embeddings for text chunks using OpenAI.
 import os
 from typing import List
 from openai import AsyncOpenAI
-from ..utils.constants import DEFAULT_EMBEDDING_MODEL
+from ..utils.constants import DEFAULT_EMBEDDING_MODEL, EMBEDDING_MODEL_PRICE
 
 
 async def generate_embeddings(
@@ -21,7 +21,7 @@ async def generate_embeddings(
     Returns:
         tuple: (embeddings, usage_info) where:
             - embeddings: List of embedding vectors
-            - usage_info: Dict with 'tokens' and 'cost' information
+            - usage_info: Dict with 'input_tokens' and 'cost' information
 
     Raises:
         ValueError: If chunks is empty, model is not text-embedding-3-small, or OPENAI_API_KEY is missing
@@ -46,12 +46,12 @@ async def generate_embeddings(
         # Extract embeddings from response
         embeddings = [item.embedding for item in response.data]
 
-        # Calculate cost: text-embedding-3-small: $0.02 / 1M tokens
+        # Calculate cost
         tokens_used = response.usage.total_tokens
 
         usage_info = {
-            "tokens": tokens_used,
-            "cost": tokens_used * 0.02 / 1_000_000,
+            "input_tokens": tokens_used,
+            "cost": tokens_used * EMBEDDING_MODEL_PRICE / 1_000_000,
             "model": model,
         }
 
