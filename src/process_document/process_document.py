@@ -57,7 +57,7 @@ async def process_document(
             - embeddings: List of embedding vectors for each chunk
             - chunks_with_numbers: List of booleans indicating which chunks contain numbers
             - chunk_count: Total number of chunks
-            - verifiable_facts: Extracted verifiable data (if extract_verifiable=True)
+            - verifiable_data: Extracted verifiable data (if extract_verifiable=True)
             - file_type: 'pdf' or 'text'
             - (For PDFs) metadata, page_count, file_name
             - processing_metrics: Dict with costs and processing time
@@ -119,7 +119,7 @@ async def process_document(
             chunks, chunks_with_numbers, model=verifiable_model
         )
         verifiable_usage = verifiable_result.get("usage", {})
-        result["verifiable_facts"] = _filter_verifiable_statements_with_numbers(
+        result["verifiable_data"] = _filter_verifiable_statements_with_numbers(
             verifiable_result, lang
         )
 
@@ -167,7 +167,7 @@ async def process_document(
     # Upload processed document data to database:
     # - Document metadata (file_type, page_count, etc.)
     # - Text chunks with embeddings
-    # - Verifiable facts extracted
+    # - Verifiable data extracted
     # - Link chunks with their corresponding embeddings and numeric flags
 
     return result
@@ -184,10 +184,10 @@ def _filter_verifiable_statements_with_numbers(
         lang: Language code for number detection
 
     Returns:
-        dict: Filtered result with summary and verifiable_facts
+        dict: Filtered result with summary and verifiable_data
     """
-    filtered_verifiable_facts = []
-    for fact_group in verifiable_result["verifiable_facts"]:
+    filtered_verifiable_data = []
+    for fact_group in verifiable_result["verifiable_data"]:
         if "statements" in fact_group and fact_group["statements"]:
             # Filter statements that contain numbers
             statements_with_numbers = [
@@ -199,7 +199,7 @@ def _filter_verifiable_statements_with_numbers(
             if statements_with_numbers:
                 filtered_fact_group = fact_group.copy()
                 filtered_fact_group["statements"] = statements_with_numbers
-                filtered_verifiable_facts.append(filtered_fact_group)
+                filtered_verifiable_data.append(filtered_fact_group)
 
     return {
         "summary": {
@@ -207,10 +207,10 @@ def _filter_verifiable_statements_with_numbers(
                 "total_chunks_analyzed"
             ],
             "total_statements_extracted": sum(
-                len(fg["statements"]) for fg in filtered_verifiable_facts
+                len(fg["statements"]) for fg in filtered_verifiable_data
             ),
         },
-        "verifiable_facts": filtered_verifiable_facts,
+        "verifiable_data": filtered_verifiable_data,
     }
 
 

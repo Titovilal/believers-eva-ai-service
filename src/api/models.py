@@ -57,7 +57,7 @@ class DocumentResponse(BaseModel):
     chunks_with_numbers: List[bool]
     chunk_count: int
     file_type: str
-    verifiable_facts: Optional[Dict[str, Any]] = None
+    verifiable_data: Optional[Dict[str, Any]] = None
     metadata: Optional[Dict[str, Any]] = None
     page_count: Optional[int] = None
     file_name: Optional[str] = None

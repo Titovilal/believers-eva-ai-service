@@ -121,41 +121,21 @@ class VerifiableDataCookbook(BaseCookbook):
         # Display results
         self.print_section("📋 EXTRACTION RESULTS")
 
-        print("\nSummary:")
+        print("\n📊 Chunks:")
         print(f"  Total chunks analyzed: {result['summary']['total_chunks_analyzed']}")
         print(
-            f"  Total statements extracted (unfiltered): {result['summary']['total_statements_extracted_unfiltered']}"
+            f"  Statements extracted (unfiltered): {result['summary']['total_statements_extracted_unfiltered']}"
         )
         print(
-            f"  Total statements extracted (filtered): {result['summary']['total_statements_extracted_filtered']}"
+            f"  Statements extracted (filtered): {result['summary']['total_statements_extracted_filtered']}"
         )
 
-        print(
-            "\n🔍 Verifiable facts by chunk (FILTERED - only statements with numbers):"
-        )
-        print("-" * 80)
-
-        for fact_group in result["verifiable_facts_filtered"]:
-            chunk_idx = fact_group["chunk_index"]
-            chunk_text = sample_chunks[chunk_idx]
-            print(f"\n📄 Chunk #{chunk_idx}:")
-
-            # Show preview of chunk (first 150 chars)
-            preview = chunk_text[:150].replace("\n", " ")
-            if len(chunk_text) > 150:
-                preview += "..."
-            print(f"   Original: {preview}")
-
-            if "error" in fact_group:
-                print(f"   ❌ Error: {fact_group['error']}")
-            else:
-                statements = fact_group.get("statements", [])
-                if statements:
-                    print(f"   ✅ Extracted {len(statements)} statement(s):")
-                    for i, statement in enumerate(statements, 1):
-                        print(f"      {i}. {statement}")
-                else:
-                    print("   ℹ️  No verifiable data found")
+        # Display usage if available
+        if "usage" in extraction_result:
+            print("\n💰 Usage:")
+            usage = extraction_result["usage"]
+            for key, value in usage.items():
+                print(f"  {key}: {value}")
 
         # Save results to JSON with input filename
         output_filename = f"{chunks_file.stem}_verifiable_data.json"

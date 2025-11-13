@@ -15,6 +15,8 @@ DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
 DEFAULT_EXTRACT_VERIFIABLE = True
 DEFAULT_VERIFIABLE_MODEL = "gpt-5-mini"
 DEFAULT_VERIFIABLE_BATCH_SIZE = 5  # Process chunks in batches to reduce API calls
+VERIFIABLE_MODEL_INPUT_PRICE = 0.250  # USD per million tokens
+VERIFIABLE_MODEL_OUTPUT_PRICE = 2.000  # USD per million tokens
 
 # Language detection constants
 DEFAULT_LANGUAGE = "en"

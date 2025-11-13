@@ -8,7 +8,12 @@ import asyncio
 from typing import List, Dict, Any
 from openai import AsyncOpenAI
 
-from ..utils.constants import DEFAULT_VERIFIABLE_MODEL, DEFAULT_VERIFIABLE_BATCH_SIZE
+from ..utils.constants import (
+    DEFAULT_VERIFIABLE_MODEL,
+    DEFAULT_VERIFIABLE_BATCH_SIZE,
+    VERIFIABLE_MODEL_INPUT_PRICE,
+    VERIFIABLE_MODEL_OUTPUT_PRICE,
+)
 
 
 async def _process_batch_async(
@@ -139,7 +144,7 @@ async def extract_verifiable_data(
     Returns:
         dict: JSON structure containing extracted verifiable data with format:
             {
-                "verifiable_facts": [
+                "verifiable_data": [
                     {
                         "chunk_index": int,
                         "statements": ["phrase with verifiable data 1", "phrase with verifiable data 2", ...]
@@ -178,7 +183,7 @@ async def extract_verifiable_data(
 
     if not chunks_to_analyze:
         return {
-            "verifiable_facts": [],
+            "verifiable_data": [],
             "summary": {"total_chunks_analyzed": 0, "total_statements_extracted": 0},
             "usage": {
                 "prompt_tokens": 0,
@@ -202,11 +207,12 @@ async def extract_verifiable_data(
         total_completion_tokens = sum(item.get("usage", {}).get("completion_tokens", 0) for item in verifiable_data)
         total_tokens = sum(item.get("usage", {}).get("total_tokens", 0) for item in verifiable_data)
 
-        # Calculate cost: gpt-5-mini (gpt-4o-mini): input $0.150 / 1M tokens, output $0.600 / 1M tokens
-        cost = (total_prompt_tokens * 0.15 + total_completion_tokens * 0.60) / 1_000_000
+        # Calculate cost using model pricing from constants
+        cost = (total_prompt_tokens * VERIFIABLE_MODEL_INPUT_PRICE +
+                total_completion_tokens * VERIFIABLE_MODEL_OUTPUT_PRICE) / 1_000_000
 
         return {
-            "verifiable_facts": verifiable_data,
+            "verifiable_data": verifiable_data,
             "summary": {
                 "total_chunks_analyzed": len(chunks_to_analyze),
                 "total_statements_extracted": total_statements,
