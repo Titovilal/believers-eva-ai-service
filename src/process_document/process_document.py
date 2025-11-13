@@ -14,27 +14,27 @@ from .generate_embeddings import generate_embeddings
 from .detect_number_in_text import detect_number_in_text
 from .extract_verifiable_data import extract_verifiable_data
 from ..utils.constants import (
-    DEFAULT_ENABLE_IMAGE_ANNOTATION,
-    DEFAULT_FORCE_OCR,
-    DEFAULT_CHUNK_SIZE,
-    DEFAULT_CHUNK_OVERLAP,
-    DEFAULT_EMBEDDING_MODEL,
-    DEFAULT_LANGUAGE,
-    DEFAULT_EXTRACT_VERIFIABLE,
-    DEFAULT_VERIFIABLE_MODEL,
+    PARSE_PDF_DEFAULT_ENABLE_IMAGE_ANNOTATION,
+    PARSE_PDF_DEFAULT_FORCE_OCR,
+    CHUNK_DEFAULT_SIZE,
+    CHUNK_DEFAULT_OVERLAP,
+    EMBEDDING_DEFAULT_MODEL,
+    LANGUAGE_DEFAULT,
+    VERIFIABLE_DEFAULT_EXTRACT,
+    VERIFIABLE_DEFAULT_MODEL,
 )
 
 
 async def process_document(
     base64_data: str,
-    enable_image_annotation: bool = DEFAULT_ENABLE_IMAGE_ANNOTATION,
-    force_ocr: bool = DEFAULT_FORCE_OCR,
-    chunk_size: int = DEFAULT_CHUNK_SIZE,
-    chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
-    model: str = DEFAULT_EMBEDDING_MODEL,
-    lang: str = DEFAULT_LANGUAGE,
-    extract_verifiable: bool = DEFAULT_EXTRACT_VERIFIABLE,
-    verifiable_model: str = DEFAULT_VERIFIABLE_MODEL,
+    enable_image_annotation: bool = PARSE_PDF_DEFAULT_ENABLE_IMAGE_ANNOTATION,
+    force_ocr: bool = PARSE_PDF_DEFAULT_FORCE_OCR,
+    chunk_size: int = CHUNK_DEFAULT_SIZE,
+    chunk_overlap: int = CHUNK_DEFAULT_OVERLAP,
+    model: str = EMBEDDING_DEFAULT_MODEL,
+    lang: str = LANGUAGE_DEFAULT,
+    extract_verifiable: bool = VERIFIABLE_DEFAULT_EXTRACT,
+    verifiable_model: str = VERIFIABLE_DEFAULT_MODEL,
 ) -> dict:
     """
     Process a base64 encoded document from a request.
@@ -206,8 +206,8 @@ def _filter_verifiable_statements_with_numbers(
 
 def _parse_pdf(
     pdf_data: bytes,
-    enable_image_annotation: bool = DEFAULT_ENABLE_IMAGE_ANNOTATION,
-    force_ocr: bool = DEFAULT_FORCE_OCR,
+    enable_image_annotation: bool = PARSE_PDF_DEFAULT_ENABLE_IMAGE_ANNOTATION,
+    force_ocr: bool = PARSE_PDF_DEFAULT_FORCE_OCR,
 ) -> dict:
     """
     Process PDF file data.

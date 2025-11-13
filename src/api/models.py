@@ -6,14 +6,9 @@ Data models for API interactions.
 from pydantic import BaseModel
 from typing import Optional, List, Any, Literal, Dict
 from src.utils.constants import (
-    DEFAULT_ENABLE_IMAGE_ANNOTATION,
-    DEFAULT_FORCE_OCR,
-    DEFAULT_CHUNK_SIZE,
-    DEFAULT_CHUNK_OVERLAP,
-    DEFAULT_EMBEDDING_MODEL,
-    DEFAULT_LANGUAGE,
-    DEFAULT_EXTRACT_VERIFIABLE,
-    DEFAULT_VERIFIABLE_MODEL,
+    PARSE_PDF_DEFAULT_ENABLE_IMAGE_ANNOTATION,
+    PARSE_PDF_DEFAULT_FORCE_OCR,
+    LANGUAGE_DEFAULT,
 )
 
 
@@ -43,9 +38,9 @@ class DocumentRequest(BaseModel):
     """Request model for document processing"""
 
     base64_data: str
-    enable_image_annotation: bool = DEFAULT_ENABLE_IMAGE_ANNOTATION
-    force_ocr: bool = DEFAULT_FORCE_OCR
-    lang: str = DEFAULT_LANGUAGE
+    enable_image_annotation: bool = PARSE_PDF_DEFAULT_ENABLE_IMAGE_ANNOTATION
+    force_ocr: bool = PARSE_PDF_DEFAULT_FORCE_OCR
+    lang: str = LANGUAGE_DEFAULT
 
 
 class DocumentResponse(BaseModel):

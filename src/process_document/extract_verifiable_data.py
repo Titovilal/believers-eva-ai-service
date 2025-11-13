@@ -9,8 +9,8 @@ from typing import List, Dict, Any
 from openai import AsyncOpenAI
 
 from ..utils.constants import (
-    DEFAULT_VERIFIABLE_MODEL,
-    DEFAULT_VERIFIABLE_BATCH_SIZE,
+    VERIFIABLE_DEFAULT_MODEL,
+    VERIFIABLE_DEFAULT_BATCH_SIZE,
     VERIFIABLE_MODEL_INPUT_PRICE,
     VERIFIABLE_MODEL_OUTPUT_PRICE,
 )
@@ -47,15 +47,17 @@ async def _process_batch_async(
 
         for i, (chunk_index, _) in enumerate(batch):
             chunk_data = chunks_data[i] if i < len(chunks_data) else {}
-            results.append({
-                "chunk_index": chunk_index,
-                "statements": chunk_data.get("statements", []),
-                "usage": {
-                    "prompt_tokens": usage.prompt_tokens // len(batch),
-                    "completion_tokens": usage.completion_tokens // len(batch),
-                    "total_tokens": usage.total_tokens // len(batch),
-                },
-            })
+            results.append(
+                {
+                    "chunk_index": chunk_index,
+                    "statements": chunk_data.get("statements", []),
+                    "usage": {
+                        "prompt_tokens": usage.prompt_tokens // len(batch),
+                        "completion_tokens": usage.completion_tokens // len(batch),
+                        "total_tokens": usage.total_tokens // len(batch),
+                    },
+                }
+            )
 
         return results
 
@@ -66,7 +68,11 @@ async def _process_batch_async(
                 "chunk_index": chunk_index,
                 "statements": [],
                 "error": str(e),
-                "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+                "usage": {
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "total_tokens": 0,
+                },
             }
             for chunk_index, _ in batch
         ]
@@ -76,7 +82,7 @@ async def _extract_verifiable_data_async(
     chunks_to_analyze: List[tuple],
     model: str,
     api_key: str,
-    batch_size: int = DEFAULT_VERIFIABLE_BATCH_SIZE,
+    batch_size: int = VERIFIABLE_DEFAULT_BATCH_SIZE,
 ) -> List[Dict[str, Any]]:
     """Process chunks in batches to reduce API calls."""
     client = AsyncOpenAI(api_key=api_key)
@@ -105,14 +111,13 @@ Return one object per chunk in the same order. If you don't find verifiable data
 
     # Group chunks into batches
     batches = [
-        chunks_to_analyze[i:i + batch_size]
+        chunks_to_analyze[i : i + batch_size]
         for i in range(0, len(chunks_to_analyze), batch_size)
     ]
 
     # Create tasks for all batches
     tasks = [
-        _process_batch_async(client, batch, model, system_prompt)
-        for batch in batches
+        _process_batch_async(client, batch, model, system_prompt) for batch in batches
     ]
 
     # Process all batches in parallel
@@ -129,8 +134,8 @@ Return one object per chunk in the same order. If you don't find verifiable data
 async def extract_verifiable_data(
     chunks: List[str],
     chunks_with_numbers: List[bool],
-    model: str = DEFAULT_VERIFIABLE_MODEL,
-    batch_size: int = DEFAULT_VERIFIABLE_BATCH_SIZE,
+    model: str = VERIFIABLE_DEFAULT_MODEL,
+    batch_size: int = VERIFIABLE_DEFAULT_BATCH_SIZE,
 ) -> Dict[str, Any]:
     """
     Analyze chunks containing numbers and extract verifiable data using AI.
@@ -194,15 +199,24 @@ async def extract_verifiable_data(
 
     try:
         # Run async processing
-        verifiable_data = await _extract_verifiable_data_async(chunks_to_analyze, model, api_key, batch_size)
+        verifiable_data = await _extract_verifiable_data_async(
+            chunks_to_analyze, model, api_key, batch_size
+        )
 
         # Count total tokens
-        total_prompt_tokens = sum(item.get("usage", {}).get("prompt_tokens", 0) for item in verifiable_data)
-        total_completion_tokens = sum(item.get("usage", {}).get("completion_tokens", 0) for item in verifiable_data)
+        total_prompt_tokens = sum(
+            item.get("usage", {}).get("prompt_tokens", 0) for item in verifiable_data
+        )
+        total_completion_tokens = sum(
+            item.get("usage", {}).get("completion_tokens", 0)
+            for item in verifiable_data
+        )
 
         # Calculate cost using model pricing from constants
-        cost = (total_prompt_tokens * VERIFIABLE_MODEL_INPUT_PRICE +
-                total_completion_tokens * VERIFIABLE_MODEL_OUTPUT_PRICE) / 1_000_000
+        cost = (
+            total_prompt_tokens * VERIFIABLE_MODEL_INPUT_PRICE
+            + total_completion_tokens * VERIFIABLE_MODEL_OUTPUT_PRICE
+        ) / 1_000_000
 
         return {
             "verifiable_data": verifiable_data,

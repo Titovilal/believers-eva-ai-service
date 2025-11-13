@@ -6,6 +6,7 @@ Functions for parsing and extracting text from PDF files using Docling.
 import os
 import re
 import base64
+import logging
 from io import BytesIO
 from pathlib import Path
 from pdf2image import convert_from_path
@@ -18,12 +19,24 @@ from docling.datamodel.pipeline_options import (
 )
 from docling_core.types.doc import PictureItem
 from ..utils.constants import (
-    IMAGE_ANNOTATION_API_URL,
-    IMAGE_ANNOTATION_MODEL,
-    IMAGE_ANNOTATION_MAX_TOKENS,
-    IMAGE_ANNOTATION_PROMPT,
-    IMAGE_ANNOTATION_TIMEOUT,
+    PARSE_PDF_DEFAULT_IMAGE_DETAIL,
+    PARSE_PDF_DOCLING_IMAGE_API_URL,
+    PARSE_PDF_DOCLING_IMAGE_MODEL,
+    PARSE_PDF_DOCLING_IMAGE_MAX_TOKENS,
+    PARSE_PDF_DOCLING_IMAGE_PROMPT,
+    PARSE_PDF_DOCLING_IMAGE_TIMEOUT,
+    PARSE_PDF_DOCLING_IMAGE_TOKENS_LOW_DETAIL,
+    PARSE_PDF_DOCLING_IMAGE_TOKENS_HIGH_DETAIL,
+    PARSE_PDF_DOCLING_IMAGE_INPUT_PRICE,
+    PARSE_PDF_DOCLING_IMAGE_OUTPUT_PRICE,
+    PARSE_PDF_DOCLING_IMAGE_AVG_OUTPUT_TOKENS,
+    PARSE_PDF_OPENAI_MODEL,
+    PARSE_PDF_OPENAI_INPUT_PRICE,
+    PARSE_PDF_OPENAI_OUTPUT_PRICE,
+    PARSE_PDF_OPENAI_IMAGE_DPI,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # OpenAI Vision OCR prompts
@@ -43,9 +56,25 @@ RULES:
 """
 
 
-def _consistency_prompt(prior_page: str) -> str:
-    """Generate consistency prompt with prior page reference."""
-    return f'Markdown must maintain consistent formatting with the following page: \n\n """{prior_page}"""'
+def _build_usage(
+    input_tokens: int = 0, output_tokens: int = 0, model: str = "", cost: float = 0
+) -> dict:
+    """Build standardized usage dictionary."""
+    return {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "model": model,
+        "cost": cost,
+    }
+
+
+def _build_response(text: str, page_count: int, usage: dict) -> dict:
+    """Build standardized response dictionary."""
+    return {
+        "text": text,
+        "page_count": page_count,
+        "usage": usage,
+    }
 
 
 def _extract_and_process_images(document, full_text: str) -> tuple[str, list[dict]]:
@@ -90,9 +119,17 @@ def _extract_and_process_images(document, full_text: str) -> tuple[str, list[dic
 
 
 def parse_pdf_with_docling(
-    pdf_path: Path, enable_image_annotation: bool = False
+    pdf_path: Path,
+    enable_image_annotation: bool = False,
+    image_detail: str = PARSE_PDF_DEFAULT_IMAGE_DETAIL,
 ) -> dict:
-    """Parse PDF using Docling library with optional image annotation."""
+    """Parse PDF using Docling library with optional image annotation.
+
+    Args:
+        pdf_path: Path to the PDF file
+        enable_image_annotation: Whether to enable image annotation
+        image_detail: Detail level for images - "low" (70 tokens) or "high" (~630 tokens avg)
+    """
     try:
         # Configure pipeline options
         pipeline_options = PdfPipelineOptions(do_ocr=False)
@@ -101,14 +138,14 @@ def parse_pdf_with_docling(
             pipeline_options.enable_remote_services = True
             pipeline_options.do_picture_description = True
             pipeline_options.picture_description_options = PictureDescriptionApiOptions(
-                url=IMAGE_ANNOTATION_API_URL,
+                url=PARSE_PDF_DOCLING_IMAGE_API_URL,
                 params={
-                    "model": IMAGE_ANNOTATION_MODEL,
-                    "max_completion_tokens": IMAGE_ANNOTATION_MAX_TOKENS,
+                    "model": PARSE_PDF_DOCLING_IMAGE_MODEL,
+                    "max_completion_tokens": PARSE_PDF_DOCLING_IMAGE_MAX_TOKENS,
                 },
                 headers={"Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY')}"},
-                prompt=IMAGE_ANNOTATION_PROMPT,
-                timeout=IMAGE_ANNOTATION_TIMEOUT,
+                prompt=PARSE_PDF_DOCLING_IMAGE_PROMPT,
+                timeout=PARSE_PDF_DOCLING_IMAGE_TIMEOUT,
             )
 
         # Initialize converter and process document
@@ -128,46 +165,61 @@ def parse_pdf_with_docling(
                 result.document, full_text
             )
 
-        # Extract metadata and build response
+        # Extract metadata
         doc = result.document
         page_count = len(doc.pages) if hasattr(doc, "pages") and doc.pages else 1
 
-        # Calculate usage costs (Vision API: ~$0.15/1M tokens, ~500 tokens/image)
-        images_processed = len(image_annotations)
-        vision_tokens = images_processed * 500
-        vision_cost = vision_tokens * 0.15 / 1_000_000
-
-        response = {
-            "text": full_text,
-            "page_count": page_count,
-            "file_name": pdf_path.name,
-            "usage": {
-                "images_annotated": images_processed,
-                "vision_tokens_estimated": vision_tokens,
-                "vision_cost": vision_cost,
-            },
-        }
+        # Calculate usage costs if image annotation is enabled
+        usage = _build_usage()
 
         if enable_image_annotation:
-            response["images"] = image_annotations
+            images_processed = len(image_annotations)
+            # Calculate input tokens (vision tokens from images)
+            tokens_per_image = (
+                PARSE_PDF_DOCLING_IMAGE_TOKENS_LOW_DETAIL
+                if image_detail == "low"
+                else PARSE_PDF_DOCLING_IMAGE_TOKENS_HIGH_DETAIL
+            )
+            input_tokens = images_processed * tokens_per_image
 
-        return response
+            # Calculate output tokens (estimated average per image description)
+            output_tokens = images_processed * PARSE_PDF_DOCLING_IMAGE_AVG_OUTPUT_TOKENS
+
+            # Calculate total cost (input + output)
+            cost = (
+                (input_tokens * PARSE_PDF_DOCLING_IMAGE_INPUT_PRICE)
+                + (output_tokens * PARSE_PDF_DOCLING_IMAGE_OUTPUT_PRICE)
+            ) / 1_000_000
+
+            usage = _build_usage(
+                input_tokens, output_tokens, PARSE_PDF_DOCLING_IMAGE_MODEL, cost
+            )
+
+        return _build_response(full_text, page_count, usage)
 
     except Exception as e:
         raise Exception(f"Error parsing PDF {pdf_path}: {str(e)}")
 
 
-def parse_pdf_with_raw_openai(pdf_path: Path) -> dict:
-    """Parse PDF using raw OpenAI Vision API by converting to images."""
+def parse_pdf_with_raw_openai(
+    pdf_path: Path, image_detail: str = PARSE_PDF_DEFAULT_IMAGE_DETAIL
+) -> dict:
+    """Parse PDF using raw OpenAI Vision API by converting to images.
+
+    Args:
+        pdf_path: Path to the PDF file
+        image_detail: Detail level for images - "low" or "high"
+    """
     try:
         # Initialize OpenAI client
         client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
         # Convert PDF to images
-        images = convert_from_path(str(pdf_path), dpi=200)
+        images = convert_from_path(str(pdf_path), dpi=PARSE_PDF_OPENAI_IMAGE_DPI)
 
         markdown_content = []
-        total_tokens = 0
+        total_input_tokens = 0
+        total_output_tokens = 0
         previous_markdown = None
 
         # Process each page/image
@@ -179,19 +231,18 @@ def parse_pdf_with_raw_openai(pdf_path: Path) -> dict:
 
             # Build the prompt based on whether we have previous context
             if previous_markdown is None:
-                # First page: base prompt only
                 prompt = SYSTEM_PROMPT_BASE
             else:
-                # Subsequent pages: include consistency prompt with half of previous page
-                half_length = len(previous_markdown) // 2
-                format_reference = previous_markdown[:half_length]
+                # Include consistency prompt with half of previous page
+                format_reference = previous_markdown[: len(previous_markdown) // 2]
                 prompt = (
-                    SYSTEM_PROMPT_BASE + "\n\n" + _consistency_prompt(format_reference)
+                    f"{SYSTEM_PROMPT_BASE}\n\n"
+                    f'Markdown must maintain consistent formatting with the following page: \n\n """{format_reference}"""'
                 )
 
             # Call OpenAI Vision API
             response = client.responses.create(
-                model="gpt-5-nano",
+                model=PARSE_PDF_OPENAI_MODEL,
                 reasoning={"effort": "low"},
                 input=[
                     {
@@ -200,7 +251,8 @@ def parse_pdf_with_raw_openai(pdf_path: Path) -> dict:
                             {"type": "input_text", "text": prompt},
                             {
                                 "type": "input_image",
-                                "image_url": f"data:image/png;base64,{img_base64}"
+                                "image_url": f"data:image/png;base64,{img_base64}",
+                                "detail": image_detail,
                             },
                         ],
                     }
@@ -216,34 +268,45 @@ def parse_pdf_with_raw_openai(pdf_path: Path) -> dict:
 
             # Track token usage
             if hasattr(response, "usage"):
-                total_tokens += response.usage.total_tokens
+                total_input_tokens += response.usage.input_tokens
+                total_output_tokens += response.usage.output_tokens
 
         # Combine all pages
         full_text = "\n\n---\n\n".join(markdown_content)
 
-        # Calculate costs (gpt-4o: ~$2.50/1M input tokens, ~$10/1M output tokens)
-        # Vision tokens are typically higher, estimate ~1000 tokens per image input
-        estimated_cost = total_tokens * 5 / 1_000_000  # Average rate
+        # Calculate costs
+        cost = (
+            total_input_tokens * PARSE_PDF_OPENAI_INPUT_PRICE
+            + total_output_tokens * PARSE_PDF_OPENAI_OUTPUT_PRICE
+        ) / 1_000_000
 
-        return {
-            "text": full_text,
-            "page_count": len(images),
-            "file_name": pdf_path.name,
-            "usage": {
-                "total_tokens": total_tokens,
-                "pages_processed": len(images),
-                "estimated_cost": estimated_cost,
-            },
-        }
+        usage = _build_usage(
+            total_input_tokens, total_output_tokens, PARSE_PDF_OPENAI_MODEL, cost
+        )
+
+        return _build_response(full_text, len(images), usage)
 
     except Exception as e:
         raise Exception(f"Error parsing PDF with OpenAI {pdf_path}: {str(e)}")
 
 
 def parse_pdf(
-    pdf_path: str | Path, enable_image_annotation: bool = False, force_ocr: bool = False
+    pdf_path: str | Path,
+    enable_image_annotation: bool = False,
+    force_ocr: bool = False,
+    image_detail: str = PARSE_PDF_DEFAULT_IMAGE_DETAIL,
 ) -> dict:
-    """Parse a PDF file and extract all text content in a markdown format"""
+    """Parse a PDF file and extract all text content in a markdown format.
+
+    Args:
+        pdf_path: Path to the PDF file
+        enable_image_annotation: Whether to enable image annotation (only for Docling)
+        force_ocr: Whether to force OCR using OpenAI Vision API
+        image_detail: Detail level for images - "low" (70 tokens) or "high" (~630 tokens)
+
+    Returns:
+        dict with keys: text, page_count, usage
+    """
     pdf_path = Path(pdf_path)
 
     if not pdf_path.exists():
@@ -253,6 +316,6 @@ def parse_pdf(
         raise ValueError(f"File must be a PDF: {pdf_path}")
 
     if force_ocr:
-        return parse_pdf_with_raw_openai(pdf_path)
+        return parse_pdf_with_raw_openai(pdf_path, image_detail)
 
-    return parse_pdf_with_docling(pdf_path, enable_image_annotation)
+    return parse_pdf_with_docling(pdf_path, enable_image_annotation, image_detail)

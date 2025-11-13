@@ -5,11 +5,11 @@ Generate embeddings for text chunks using OpenAI.
 import os
 from typing import List
 from openai import AsyncOpenAI
-from ..utils.constants import DEFAULT_EMBEDDING_MODEL, EMBEDDING_MODEL_PRICE
+from ..utils.constants import EMBEDDING_DEFAULT_MODEL, EMBEDDING_MODEL_PRICE
 
 
 async def generate_embeddings(
-    chunks: List[str], model: str = DEFAULT_EMBEDDING_MODEL
+    chunks: List[str], model: str = EMBEDDING_DEFAULT_MODEL
 ) -> tuple[List[List[float]], dict]:
     """
     Generate embeddings for a list of text chunks using OpenAI.
@@ -31,7 +31,9 @@ async def generate_embeddings(
         raise ValueError("Chunks list cannot be empty")
 
     if model != "text-embedding-3-small":
-        raise ValueError(f"Only 'text-embedding-3-small' model is supported, got '{model}'")
+        raise ValueError(
+            f"Only 'text-embedding-3-small' model is supported, got '{model}'"
+        )
 
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:

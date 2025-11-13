@@ -13,11 +13,7 @@ import sys
 def run_command(cmd, cwd=None, capture_output=True):
     """Ejecuta un comando y retorna el resultado."""
     result = subprocess.run(
-        cmd,
-        shell=True,
-        cwd=cwd,
-        capture_output=capture_output,
-        text=True
+        cmd, shell=True, cwd=cwd, capture_output=capture_output, text=True
     )
     if result.returncode != 0 and capture_output:
         print(f"Error ejecutando: {cmd}")
@@ -30,7 +26,7 @@ def get_tracked_files(repo_path):
     """Obtiene la lista de archivos trackeados por git."""
     result = run_command("git ls-files", cwd=repo_path)
     if result.returncode == 0:
-        return [f.strip() for f in result.stdout.strip().split('\n') if f.strip()]
+        return [f.strip() for f in result.stdout.strip().split("\n") if f.strip()]
     return []
 
 
@@ -38,7 +34,7 @@ def clean_directory(dest_repo):
     """Limpia el directorio destino excepto .git"""
     print("   Limpiando directorio destino...")
     for item in os.listdir(dest_repo):
-        if item == '.git':
+        if item == ".git":
             continue
         item_path = os.path.join(dest_repo, item)
         try:
@@ -76,10 +72,10 @@ def branch_exists(repo_path, branch_name):
     """Verifica si una rama existe (local o remota)."""
     result = run_command("git branch -a", cwd=repo_path)
     if result.returncode == 0:
-        for line in result.stdout.split('\n'):
+        for line in result.stdout.split("\n"):
             # Limpiar la línea (quitar *, espacios, remotes/origin/)
-            line = line.strip().lstrip('*').strip()
-            line = line.replace('remotes/origin/', '')
+            line = line.strip().lstrip("*").strip()
+            line = line.replace("remotes/origin/", "")
             if line == branch_name:
                 return True
     return False
@@ -116,18 +112,30 @@ def main():
     if exists:
         print(f"\n2. Rama {branch_name} existe, haciendo checkout...")
         # Intentar checkout, si falla intentar crear desde remota
-        result = run_command(f"git checkout {branch_name}", cwd=dest_repo, capture_output=False)
+        result = run_command(
+            f"git checkout {branch_name}", cwd=dest_repo, capture_output=False
+        )
         if result.returncode != 0:
             print("   Intentando checkout desde remota...")
-            result = run_command(f"git checkout -b {branch_name} origin/{branch_name}", cwd=dest_repo, capture_output=False)
+            result = run_command(
+                f"git checkout -b {branch_name} origin/{branch_name}",
+                cwd=dest_repo,
+                capture_output=False,
+            )
             if result.returncode != 0:
                 print("Error haciendo checkout de la rama")
                 sys.exit(1)
     else:
         print(f"\n2. Creando nueva rama {branch_name}...")
         # Primero asegurarse de estar en una rama base (pro o master)
-        run_command("git checkout pro 2>/dev/null || git checkout master", cwd=dest_repo, capture_output=False)
-        result = run_command(f"git checkout -b {branch_name}", cwd=dest_repo, capture_output=False)
+        run_command(
+            "git checkout pro 2>/dev/null || git checkout master",
+            cwd=dest_repo,
+            capture_output=False,
+        )
+        result = run_command(
+            f"git checkout -b {branch_name}", cwd=dest_repo, capture_output=False
+        )
         if result.returncode != 0:
             print("Error creando la rama")
             sys.exit(1)
@@ -158,11 +166,15 @@ def main():
         # Hacer commit
         print("\n7. Creando commit...")
         commit_msg = "Sync from believers-eva-ai-service (full overwrite)"
-        run_command(f'git commit -m "{commit_msg}"', cwd=dest_repo, capture_output=False)
+        run_command(
+            f'git commit -m "{commit_msg}"', cwd=dest_repo, capture_output=False
+        )
 
     # Push force de la rama
     print(f"\n8. Pusheando rama {branch_name} (force)...")
-    result = run_command(f"git push --force -u origin {branch_name}", cwd=dest_repo, capture_output=False)
+    result = run_command(
+        f"git push --force -u origin {branch_name}", cwd=dest_repo, capture_output=False
+    )
 
     if result.returncode == 0:
         print("\n✓ Proceso completado exitosamente!")
