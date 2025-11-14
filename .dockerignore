@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+__docs__/
+*.md
+!README.md
+
+# Environment
+.env
+.env.*
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Temporary files
+*.log
+tmp/
+temp/
+.DS_Store
+
+# Railway
+railway.toml

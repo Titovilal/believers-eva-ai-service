@@ -16,7 +16,7 @@ def test_process_document():
         base64_data = base64.b64encode(pdf_content).decode("utf-8")
 
     # Prepare the request
-    url = "http://localhost:8000/process-document"
+    url = "https://believers-eva-ai-service-production.up.railway.app/process-document"
     payload = {
         "base64_data": base64_data,
         "enable_image_annotation": True,
