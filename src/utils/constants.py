@@ -49,7 +49,8 @@ PARSE_PDF_DEFAULT_IMAGE_DETAIL = "low"  # "low" or "high" - affects token usage
 # ==============================================================================
 # API configuration
 PARSE_PDF_DOCLING_IMAGE_API_URL = "https://api.openai.com/v1/chat/completions"
-PARSE_PDF_DOCLING_IMAGE_TIMEOUT = 34
+PARSE_PDF_DOCLING_IMAGE_TIMEOUT = 60  # 3 minutes per image API call
+PARSE_PDF_DOCLING_IMAGE_CONCURRENCY = 8  # Number of concurrent API calls
 PARSE_PDF_DOCLING_IMAGE_PROMPT = "Describe the picture."
 
 # Model configuration

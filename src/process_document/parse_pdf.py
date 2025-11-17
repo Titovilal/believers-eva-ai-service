@@ -34,6 +34,7 @@ from ..utils.constants import (
     PARSE_PDF_OPENAI_INPUT_PRICE,
     PARSE_PDF_OPENAI_OUTPUT_PRICE,
     PARSE_PDF_OPENAI_IMAGE_DPI,
+    PARSE_PDF_DOCLING_IMAGE_CONCURRENCY,
 )
 
 logger = logging.getLogger(__name__)
@@ -146,6 +147,7 @@ def parse_pdf_with_docling(
                 headers={"Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY')}"},
                 prompt=PARSE_PDF_DOCLING_IMAGE_PROMPT,
                 timeout=PARSE_PDF_DOCLING_IMAGE_TIMEOUT,
+                concurrency=PARSE_PDF_DOCLING_IMAGE_CONCURRENCY,
             )
 
         # Initialize converter and process document
