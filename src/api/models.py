@@ -47,10 +47,6 @@ class DocumentResponse(BaseModel):
     """Response model for document processing"""
 
     text: str
-    chunks: List[str]
-    embeddings: List[List[float]]
-    chunks_with_numbers: List[bool]
-    chunk_count: int
     file_type: str
     verifiable_data: Optional[Dict[str, Any]] = None
     metadata: Optional[Dict[str, Any]] = None

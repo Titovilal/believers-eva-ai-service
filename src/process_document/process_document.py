@@ -9,17 +9,12 @@ import time
 from pathlib import Path
 
 from .parse_pdf import parse_pdf
-from .generate_chunks import generate_chunks
-from .generate_embeddings import generate_embeddings
 from .detect_number_in_text import detect_number_in_text
-from .extract_verifiable_data import extract_verifiable_data
 from ..utils.constants import (
     PARSE_PDF_DEFAULT_ENABLE_IMAGE_ANNOTATION,
     PARSE_PDF_DEFAULT_FORCE_OCR,
-    EMBEDDING_DEFAULT_MODEL,
     LANGUAGE_DEFAULT,
     VERIFIABLE_DEFAULT_EXTRACT,
-    VERIFIABLE_DEFAULT_MODEL,
 )
 
 
@@ -43,11 +38,6 @@ async def process_document(
     Returns:
         dict: Document content and metadata including:
             - text: Extracted text from the document
-            - chunks: List of text chunks
-            - embeddings: List of embedding vectors for each chunk
-            - chunks_with_numbers: List of booleans indicating which chunks contain numbers
-            - chunk_count: Total number of chunks
-            - verifiable_data: Extracted verifiable data (if extract_verifiable=True)
             - file_type: 'pdf' or 'text'
             - (For PDFs) metadata, page_count, file_name
             - processing_metrics: Dict with costs and processing time
@@ -83,49 +73,19 @@ async def process_document(
                 "Unsupported file type. Only PDF and text files are supported."
             )
 
-    # Generate chunks from text
-    chunks = generate_chunks(
-        text_content,
-    )
-
-    # Detect which chunks contain numbers
-    chunks_with_numbers = [detect_number_in_text(chunk, lang) for chunk in chunks]
-
-    # Generate embeddings for chunks
-    embeddings, embeddings_usage = await generate_embeddings(chunks)
-
-    # Add processing results to the result dictionary
-    result["chunks"] = chunks
-    result["embeddings"] = embeddings
-    result["chunks_with_numbers"] = chunks_with_numbers
-    result["chunk_count"] = len(chunks)
-
-    # Initialize verifiable data costs
-    verifiable_usage = {}
-
-    # Extract verifiable data if enabled
-    if extract_verifiable:
-        verifiable_result = await extract_verifiable_data(
-            chunks, chunks_with_numbers, model=VERIFIABLE_DEFAULT_MODEL
-        )
-        verifiable_usage = verifiable_result.get("usage", {})
-        result["verifiable_data"] = _filter_verifiable_statements_with_numbers(
-            verifiable_result, LANGUAGE_DEFAULT
-        )
-
     # Calculate processing time
     processing_time = time.time() - start_time
 
     # Consolidate all costs and metrics
     total_cost = (
         pdf_usage.get("cost", 0.0)
-        + embeddings_usage.get("cost", 0.0)
-        + verifiable_usage.get("cost", 0.0)
+        + 0.0  # embeddings_usage.get("cost", 0.0)
+        + 0.0  # verifiable_usage.get("cost", 0.0)
     )
 
     result["processing_metrics"] = {
         "processing_time_seconds": round(processing_time, 2),
-        "total_chunks": len(chunks),
+        "total_chunks": 0,  # len(chunks)
         "costs": {
             "parse_pdf": {
                 "input_tokens": pdf_usage.get("input_tokens", 0),
@@ -134,15 +94,15 @@ async def process_document(
                 "cost": pdf_usage.get("cost", 0.0),
             },
             "embeddings": {
-                "input_tokens": embeddings_usage.get("input_tokens", 0),
-                "model": embeddings_usage.get("model", EMBEDDING_DEFAULT_MODEL),
-                "cost": embeddings_usage.get("cost", 0.0),
+                "input_tokens": 0,  # embeddings_usage.get("input_tokens", 0),
+                "model": "",  # EMBEDDING_DEFAULT_MODEL,
+                "cost": 0.0,  # embeddings_usage.get("cost", 0.0),
             },
             "verifiable_data": {
-                "input_tokens": verifiable_usage.get("input_tokens", 0),
-                "output_tokens": verifiable_usage.get("output_tokens", 0),
-                "model": verifiable_usage.get("model", VERIFIABLE_DEFAULT_MODEL),
-                "cost": verifiable_usage.get("cost", 0.0),
+                "input_tokens": 0,  # verifiable_usage.get("input_tokens", 0),
+                "output_tokens": 0,  # verifiable_usage.get("output_tokens", 0),
+                "model": "",  # VERIFIABLE_DEFAULT_MODEL,
+                "cost": 0.0,  # verifiable_usage.get("cost", 0.0),
             },
             "total_cost": round(total_cost, 3),
         },
@@ -156,39 +116,6 @@ async def process_document(
     # - Link chunks with their corresponding embeddings and numeric flags
 
     return result
-
-
-def _filter_verifiable_statements_with_numbers(
-    verifiable_result: dict, lang: str
-) -> dict:
-    """
-    Filter verifiable statements to only include those containing numbers.
-
-    Args:
-        verifiable_result: Result from extract_verifiable_data
-        lang: Language code for number detection
-
-    Returns:
-        dict: Filtered result with summary and verifiable_data
-    """
-    filtered_verifiable_data = []
-    for fact_group in verifiable_result["verifiable_data"]:
-        if "statements" in fact_group and fact_group["statements"]:
-            # Filter statements that contain numbers
-            statements_with_numbers = [
-                stmt
-                for stmt in fact_group["statements"]
-                if detect_number_in_text(stmt, lang)
-            ]
-
-            if statements_with_numbers:
-                filtered_fact_group = fact_group.copy()
-                filtered_fact_group["statements"] = statements_with_numbers
-                filtered_verifiable_data.append(filtered_fact_group)
-
-    return {
-        "verifiable_data": filtered_verifiable_data,
-    }
 
 
 def _parse_pdf(
