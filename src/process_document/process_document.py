@@ -4,9 +4,7 @@ Handles base64 encoded documents from requests, supports PDF and text files.
 """
 
 import base64
-import tempfile
 import time
-from pathlib import Path
 
 from .parse_pdf import parse_pdf
 from .detect_number_in_text import detect_number_in_text
@@ -59,7 +57,7 @@ async def process_document(
 
     # Check if it's a PDF by looking at the file signature
     if decoded_data.startswith(b"%PDF"):
-        result = _parse_pdf(decoded_data, enable_image_annotation, force_ocr)
+        result = parse_pdf(decoded_data, enable_image_annotation, force_ocr)
         text_content = result["text"]
         pdf_usage = result.get("usage", {})
     else:
@@ -116,34 +114,3 @@ async def process_document(
     # - Link chunks with their corresponding embeddings and numeric flags
 
     return result
-
-
-def _parse_pdf(
-    pdf_data: bytes,
-    enable_image_annotation: bool = PARSE_PDF_DEFAULT_ENABLE_IMAGE_ANNOTATION,
-    force_ocr: bool = PARSE_PDF_DEFAULT_FORCE_OCR,
-) -> dict:
-    """
-    Process PDF file data.
-
-    Args:
-        pdf_data: Raw PDF file bytes
-        enable_image_annotation: If True, annotate images with AI descriptions
-        force_ocr: If True, force OCR even for PDFs with native text
-
-    Returns:
-        dict: Parsed PDF content and metadata
-    """
-    # Create a temporary file to store the PDF
-    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_file:
-        temp_file.write(pdf_data)
-        temp_path = temp_file.name
-
-    try:
-        # Parse the PDF using the parse_pdf function
-        result = parse_pdf(temp_path, enable_image_annotation, force_ocr)
-        result["file_type"] = "pdf"
-        return result
-    finally:
-        # Clean up the temporary file
-        Path(temp_path).unlink(missing_ok=True)
