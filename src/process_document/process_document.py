@@ -8,7 +8,7 @@ import time
 
 from .parse_pdf import parse_pdf
 from .detect_number_in_text import detect_number_in_text
-from ..utils.constants import (
+from ..utils.constants_old import (
     PARSE_PDF_DEFAULT_ENABLE_IMAGE_ANNOTATION,
     PARSE_PDF_DEFAULT_FORCE_OCR,
     LANGUAGE_DEFAULT,

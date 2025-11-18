@@ -5,11 +5,11 @@ Generate embeddings for text chunks using OpenAI.
 import os
 from typing import List
 from openai import AsyncOpenAI
-from ..utils.constants import EMBEDDING_DEFAULT_MODEL, EMBEDDING_MODEL_PRICE
+from ..utils.constants import EMBEDDINGS
 
 
 async def generate_embeddings(
-    chunks: List[str], model: str = EMBEDDING_DEFAULT_MODEL
+    chunks: List[str], model: str = EMBEDDINGS["model_id"]
 ) -> tuple[List[List[float]], dict]:
     """
     Generate embeddings for a list of text chunks using OpenAI.
@@ -53,7 +53,7 @@ async def generate_embeddings(
 
         usage_info = {
             "input_tokens": tokens_used,
-            "cost": tokens_used * EMBEDDING_MODEL_PRICE / 1_000_000,
+            "cost": tokens_used * EMBEDDINGS["model_price"] / EMBEDDINGS["model_pricing_unit"],
             "model": model,
         }
 

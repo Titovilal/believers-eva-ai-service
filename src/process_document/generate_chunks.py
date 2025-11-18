@@ -4,17 +4,13 @@ Generate chunks from text using Recursive Character Text Splitting.
 
 from typing import List
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from ..utils.constants import (
-    CHUNK_DEFAULT_SIZE,
-    CHUNK_DEFAULT_OVERLAP,
-    CHUNK_DEFAULT_SEPARATORS,
-)
+from ..utils.constants import CHUNKING
 
 
 def generate_chunks(
     text: str,
-    chunk_size: int = CHUNK_DEFAULT_SIZE,
-    chunk_overlap: int = CHUNK_DEFAULT_OVERLAP,
+    chunk_size: int = CHUNKING["chunk_size"],
+    chunk_overlap: int = CHUNKING["chunk_overlap"],
 ) -> List[str]:
     """
     Generate chunks from text using Recursive Character Text Splitting.
@@ -40,7 +36,7 @@ def generate_chunks(
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
-        separators=CHUNK_DEFAULT_SEPARATORS,
+        separators=CHUNKING["separators"],
     )
 
     # Split text into chunks

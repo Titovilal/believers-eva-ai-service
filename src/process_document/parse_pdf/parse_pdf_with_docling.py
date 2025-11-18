@@ -28,15 +28,10 @@ import docling.utils.api_image_request as api_module
 from docling_core.types.doc import PictureItem
 
 from ...utils.api_clients import get_openai_client
-from ...utils.constants import (
-    PARSE_PDF_DEFAULT_IMAGE_DETAIL,
-    PARSE_PDF_DOCLING_DEFAULT_REASONING_EFFORT,
-    PARSE_PDF_DOCLING_IMAGE_CONCURRENCY,
-    PARSE_PDF_DOCLING_IMAGE_INPUT_PRICE,
-    PARSE_PDF_DOCLING_IMAGE_MODEL,
-    PARSE_PDF_DOCLING_IMAGE_OUTPUT_PRICE,
-    PARSE_PDF_DOCLING_IMAGE_PROMPT,
-)
+from ...utils.constants import PARSE_PDF
+
+DOCLING_CONFIG = PARSE_PDF["docling"]
+DOCLING_SYSTEM_PROMPT = "Describe the picture."
 
 logger = logging.getLogger(__name__)
 
@@ -191,12 +186,12 @@ def _build_pipeline_options(
     pipeline_options.do_picture_description = True
     pipeline_options.picture_description_options = PictureDescriptionApiOptions(
         params=dict(
-            model=PARSE_PDF_DOCLING_IMAGE_MODEL,
-            reasoning={"effort": PARSE_PDF_DOCLING_DEFAULT_REASONING_EFFORT},
+            model=DOCLING_CONFIG["model_id"],
+            reasoning={"effort": DOCLING_CONFIG["reasoning"]},
             detail=image_detail,
         ),
-        prompt=PARSE_PDF_DOCLING_IMAGE_PROMPT,
-        concurrency=PARSE_PDF_DOCLING_IMAGE_CONCURRENCY,
+        prompt=DOCLING_SYSTEM_PROMPT,
+        concurrency=DOCLING_CONFIG["concurrency"],
     )
 
     return pipeline_options
@@ -211,14 +206,14 @@ def _calculate_usage(enable_image_annotation: bool) -> dict:
     output_tokens = usage_data["output_tokens"]
 
     cost = (
-        input_tokens * PARSE_PDF_DOCLING_IMAGE_INPUT_PRICE
-        + output_tokens * PARSE_PDF_DOCLING_IMAGE_OUTPUT_PRICE
-    ) / 1_000_000
+        input_tokens * DOCLING_CONFIG["model_input_price"]
+        + output_tokens * DOCLING_CONFIG["model_output_price"]
+    ) / DOCLING_CONFIG["model_pricing_unit"]
 
     return _build_usage(
         input_tokens,
         output_tokens,
-        PARSE_PDF_DOCLING_IMAGE_MODEL,
+        DOCLING_CONFIG["model_id"],
         cost,
     )
 
@@ -226,7 +221,7 @@ def _calculate_usage(enable_image_annotation: bool) -> dict:
 def parse_pdf_with_docling(
     pdf_path: Path,
     enable_image_annotation: bool = False,
-    image_detail: str = PARSE_PDF_DEFAULT_IMAGE_DETAIL,
+    image_detail: str = DOCLING_CONFIG["image_detail"],
 ) -> dict:
     """Parse PDF using Docling library with optional image annotation.
 

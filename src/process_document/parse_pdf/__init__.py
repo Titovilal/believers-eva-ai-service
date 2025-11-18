@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 from .parse_pdf_with_docling import parse_pdf_with_docling
 from .parse_pdf_with_raw_openai import parse_pdf_with_raw_openai
-from ...utils.constants import PARSE_PDF_DEFAULT_IMAGE_DETAIL
+from ...utils.constants_old import PARSE_PDF_DEFAULT_IMAGE_DETAIL
 
 
 def parse_pdf(

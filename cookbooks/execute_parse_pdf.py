@@ -48,8 +48,8 @@ class PDFParserCookbook(BaseCookbook):
 
     def run(self):
         # Path to the sample PDF
-        # pdf_path = self.data_dir / "sample.pdf"
-        pdf_path = self.data_dir / "ABADIA-RETUERTA-INFORME-SOSTENIBILIDAD-ESG-2023.pdf"
+        pdf_path = self.data_dir / "sample.pdf"
+        # pdf_path = self.data_dir / "ABADIA-RETUERTA-INFORME-SOSTENIBILIDAD-ESG-2023.pdf"
 
         self.print_header(f"Parsing PDF: {pdf_path.name}")
         print("\nTesting 3 different parsing methods:\n")

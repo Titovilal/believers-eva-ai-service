@@ -1,83 +1,51 @@
 """
-RAG Module Constants
-All default values and configuration constants for the RAG pipeline.
+Constants for the document processing pipeline
 """
 
-# ==============================================================================
-# LANGUAGE DETECTION
-# ==============================================================================
-LANGUAGE_DEFAULT = "en"
+PARSE_PDF = {
+    "docling": {
+        "image_detail": "low",  # "low" or "high" - affects token usage
+        "reasoning": "minimal",  # "minimal", "low", "medium", "high" - affects token usage
+        "timeout": 30,  # 30 sec per image API call
+        "concurrency": 8,  # Number of concurrent API calls
+        "model_id": "gpt-5-nano",  # Model used for image description
+        "model_input_price": 0.05,  # USD per million input tokens (vision)
+        "model_output_price": 0.4,  # USD per million output tokens (gpt-5-nano)
+        "model_max_tokens": 2048,
+        "model_pricing_unit": 1_000_000,
+    },
+    "openai": {
+        "image_dpi": 200,  # DPI for PDF to image conversion
+        "image_detail": "low",  # "low" or "high" - affects token usage
+        "reasoning": "minimal",  # "minimal", "low", "medium", "high" - affects token usage
+        "model_id": "gpt-5-mini",
+        "model_input_price": 0.25,  # USD per million tokens
+        "model_output_price": 2.0,  # USD per million tokens
+        "model_pricing_unit": 1_000_000,
+    },
+}
 
+DETECT_NUMBERS = {
+    "language": "en",
+}
 
-# ==============================================================================
-# CHUNKING
-# ==============================================================================
-CHUNK_DEFAULT_SIZE = 1024
-CHUNK_DEFAULT_OVERLAP = 0
-CHUNK_DEFAULT_SEPARATORS = ["\n\n", "\n", " ", ""]
+VERIFIABLE_DATA = {
+    "batch_size": 5,
+    "reasoning": "minimal",  # "minimal", "low", "medium", "high" - affects token usage
+    "model_id": "gpt-5-mini",
+    "model_input_price": 0.25,  # USD per million tokens
+    "model_output_price": 2.0,  # USD per million tokens
+    "model_pricing_unit": 1_000_000,
+}
 
+CHUNKING = {
+    "chunk_size": 1024,
+    "chunk_overlap": 0,
+    "separators": ["\n\n", "\n", " ", ""],
+}
 
-# ==============================================================================
-# EMBEDDINGS
-# ==============================================================================
-EMBEDDING_DEFAULT_MODEL = "text-embedding-3-small"
-EMBEDDING_MODEL_PRICE = 0.02  # USD per million tokens
-
-
-# ==============================================================================
-# VERIFIABLE DATA EXTRACTION
-# ==============================================================================
-VERIFIABLE_DEFAULT_EXTRACT = True
-VERIFIABLE_DEFAULT_BATCH_SIZE = 5  # Process chunks in batches to reduce API calls
-
-# Model configuration
-VERIFIABLE_DEFAULT_MODEL = "gpt-5-mini"
-VERIFIABLE_MODEL_INPUT_PRICE = 0.25  # USD per million tokens
-VERIFIABLE_MODEL_OUTPUT_PRICE = 2.0  # USD per million tokens
-
-
-# ==============================================================================
-# PDF PARSING - GENERAL
-# ==============================================================================
-PARSE_PDF_DEFAULT_ENABLE_IMAGE_ANNOTATION = True
-PARSE_PDF_DEFAULT_FORCE_OCR = False  # Prefer native text extraction (faster)
-PARSE_PDF_DEFAULT_IMAGE_DETAIL = "low"  # "low" or "high" - affects token usage
-
-
-# ==============================================================================
-# PDF PARSING - DOCLING IMAGE ANNOTATION (via OpenAI API)
-# ==============================================================================
-# API configuration
-PARSE_PDF_DOCLING_IMAGE_API_URL = "https://api.openai.com/v1/chat/completions"
-PARSE_PDF_DOCLING_IMAGE_TIMEOUT = 30  # 30 sec per image API call
-PARSE_PDF_DOCLING_IMAGE_CONCURRENCY = 8  # Number of concurrent API calls
-PARSE_PDF_DOCLING_IMAGE_PROMPT = "Describe the picture."
-PARSE_PDF_DOCLING_DEFAULT_REASONING_EFFORT = "minimal"
-
-# Model configuration
-PARSE_PDF_DOCLING_IMAGE_MODEL = "gpt-5-nano"
-PARSE_PDF_DOCLING_IMAGE_MAX_TOKENS = 2048
-PARSE_PDF_DOCLING_IMAGE_AVG_OUTPUT_TOKENS = (
-    1024  # Average output tokens per image (half of max 2048)
-)
-
-# Token estimation
-PARSE_PDF_DOCLING_IMAGE_TOKENS_LOW_DETAIL = 70  # Tokens per image (low detail mode)
-PARSE_PDF_DOCLING_IMAGE_TOKENS_HIGH_DETAIL = (
-    630  # Estimated average for high detail (4 tiles typical)
-)
-
-# Pricing
-PARSE_PDF_DOCLING_IMAGE_INPUT_PRICE = 0.05  # USD per million input tokens (vision)
-PARSE_PDF_DOCLING_IMAGE_OUTPUT_PRICE = 0.4  # USD per million output tokens (gpt-5-nano)
-
-
-# ==============================================================================
-# PDF PARSING - OPENAI DIRECT OCR (force_ocr=True)
-# ==============================================================================
-PARSE_PDF_OPENAI_IMAGE_DPI = 200  # DPI for PDF to image conversion
-
-# Model configuration
-PARSE_PDF_OPENAI_MODEL = "gpt-5-mini"
-PARSE_PDF_OPENAI_INPUT_PRICE = 0.25  # USD per million tokens (estimated)
-PARSE_PDF_OPENAI_OUTPUT_PRICE = 2.0  # USD per million tokens (estimated)
+EMBEDDINGS = {
+    "model_id": "text-embedding-3-small",
+    "model_price": 0.02,  # USD per million tokens
+    "model_pricing_unit": 1_000_000,
+}

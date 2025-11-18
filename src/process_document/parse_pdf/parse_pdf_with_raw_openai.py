@@ -10,16 +10,10 @@ from pathlib import Path
 from pdf2image import convert_from_path
 
 from ...utils.api_clients import get_openai_client
-from ...utils.constants import (
-    PARSE_PDF_DEFAULT_IMAGE_DETAIL,
-    PARSE_PDF_OPENAI_IMAGE_DPI,
-    PARSE_PDF_OPENAI_INPUT_PRICE,
-    PARSE_PDF_OPENAI_MODEL,
-    PARSE_PDF_OPENAI_OUTPUT_PRICE,
-)
+from ...utils.constants import PARSE_PDF
 
-SYSTEM_PROMPT_BASE = """
-Convert the following document to markdown.
+OPENAI_CONFIG = PARSE_PDF["openai"]
+OPENAI_SYSTEM_PROMPT = """Convert the following document to markdown.
 Return only the markdown with no explanation text. Do not include delimiters like ```markdown or ```html.
 
 RULES:
@@ -30,8 +24,7 @@ RULES:
   - Logos should be wrapped in brackets. Ex: <logo>Coca-Cola<logo>
   - Watermarks should be wrapped in brackets. Ex: <watermark>OFFICIAL COPY<watermark>
   - Page numbers should be wrapped in brackets. Ex: <page_number>14<page_number> or <page_number>9/22<page_number>
-  - Prefer using ☐ and ☑ for check boxes.
-"""
+  - Prefer using ☐ and ☑ for check boxes."""
 
 
 def _encode_image_to_base64(image) -> str:
@@ -44,11 +37,11 @@ def _encode_image_to_base64(image) -> str:
 def _build_prompt(previous_markdown: str = None) -> str:
     """Build the prompt for OpenAI Vision API."""
     if previous_markdown is None:
-        return SYSTEM_PROMPT_BASE
+        return OPENAI_SYSTEM_PROMPT
 
     format_reference = previous_markdown[: len(previous_markdown) // 2]
     return (
-        f"{SYSTEM_PROMPT_BASE}\n\n"
+        f"{OPENAI_SYSTEM_PROMPT}\n\n"
         f'Markdown must maintain consistent formatting with the following page: \n\n """{format_reference}"""'
     )
 
@@ -56,8 +49,8 @@ def _build_prompt(previous_markdown: str = None) -> str:
 def _build_request_payload(prompt: str, img_base64: str, image_detail: str) -> dict:
     """Build the request payload for OpenAI Responses API."""
     return {
-        "model": PARSE_PDF_OPENAI_MODEL,
-        "reasoning": {"effort": "low"},
+        "model": OPENAI_CONFIG["model_id"],
+        "reasoning": {"effort": OPENAI_CONFIG["reasoning"]},
         "input": [
             {
                 "role": "user",
@@ -77,13 +70,13 @@ def _build_request_payload(prompt: str, img_base64: str, image_detail: str) -> d
 def _calculate_cost(input_tokens: int, output_tokens: int) -> float:
     """Calculate the cost based on token usage."""
     return (
-        input_tokens * PARSE_PDF_OPENAI_INPUT_PRICE
-        + output_tokens * PARSE_PDF_OPENAI_OUTPUT_PRICE
-    ) / 1_000_000
+        input_tokens * OPENAI_CONFIG["model_input_price"]
+        + output_tokens * OPENAI_CONFIG["model_output_price"]
+    ) / OPENAI_CONFIG["model_pricing_unit"]
 
 
 def parse_pdf_with_raw_openai(
-    pdf_path: Path, image_detail: str = PARSE_PDF_DEFAULT_IMAGE_DETAIL
+    pdf_path: Path, image_detail: str = OPENAI_CONFIG["image_detail"]
 ) -> dict:
     """Parse PDF using raw OpenAI Vision API by converting to images.
 
@@ -96,7 +89,7 @@ def parse_pdf_with_raw_openai(
     """
     try:
         client = get_openai_client()
-        images = convert_from_path(str(pdf_path), dpi=PARSE_PDF_OPENAI_IMAGE_DPI)
+        images = convert_from_path(str(pdf_path), dpi=OPENAI_CONFIG["image_dpi"])
 
         markdown_content = []
         total_input_tokens = 0
@@ -124,7 +117,7 @@ def parse_pdf_with_raw_openai(
         usage = dict(
             input_tokens=total_input_tokens,
             output_tokens=total_output_tokens,
-            model=PARSE_PDF_OPENAI_MODEL,
+            model=OPENAI_CONFIG["model_id"],
             cost=cost,
         )
 

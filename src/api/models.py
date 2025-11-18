@@ -5,7 +5,7 @@ Data models for API interactions.
 
 from pydantic import BaseModel
 from typing import Optional, List, Any, Literal, Dict
-from src.utils.constants import (
+from utils.constants_old import (
     PARSE_PDF_DEFAULT_ENABLE_IMAGE_ANNOTATION,
     PARSE_PDF_DEFAULT_FORCE_OCR,
     LANGUAGE_DEFAULT,
