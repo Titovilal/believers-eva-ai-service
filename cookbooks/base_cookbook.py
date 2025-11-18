@@ -40,7 +40,7 @@ class BaseCookbook:
     @property
     def output_dir(self) -> Path:
         """Get or create the outputs directory."""
-        output_dir = Path(__file__).parent / "outputs"
+        output_dir = self.project_root / "data" / "cookbooks_output"
         output_dir.mkdir(exist_ok=True)
         return output_dir
 
