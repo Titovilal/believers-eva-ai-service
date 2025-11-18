@@ -6,14 +6,14 @@ import tempfile
 from pathlib import Path
 from .parse_pdf_with_docling import parse_pdf_with_docling
 from .parse_pdf_with_raw_openai import parse_pdf_with_raw_openai
-from ...utils.constants_old import PARSE_PDF_DEFAULT_IMAGE_DETAIL
+from ...utils.constants import PARSE_PDF
 
 
 def parse_pdf(
     pdf_input: str | Path | bytes,
     enable_image_annotation: bool = False,
     force_ocr: bool = False,
-    image_detail: str = PARSE_PDF_DEFAULT_IMAGE_DETAIL,
+    image_detail: str = PARSE_PDF["docling"]["image_detail"],
 ) -> dict:
     """Parse a PDF file and extract all text content in a markdown format.
 

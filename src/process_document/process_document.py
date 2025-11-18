@@ -8,20 +8,18 @@ import time
 
 from .parse_pdf import parse_pdf
 from .detect_number_in_text import detect_number_in_text
-from ..utils.constants_old import (
-    PARSE_PDF_DEFAULT_ENABLE_IMAGE_ANNOTATION,
-    PARSE_PDF_DEFAULT_FORCE_OCR,
-    LANGUAGE_DEFAULT,
-    VERIFIABLE_DEFAULT_EXTRACT,
-)
+from .generate_chunks import generate_chunks
+from .generate_embeddings import generate_embeddings
+from .extract_verifiable_data import extract_verifiable_data
+from ..utils.constants import  DETECT_NUMBERS
 
 
 async def process_document(
     base64_data: str,
-    enable_image_annotation: bool = PARSE_PDF_DEFAULT_ENABLE_IMAGE_ANNOTATION,
-    force_ocr: bool = PARSE_PDF_DEFAULT_FORCE_OCR,
-    lang: str = LANGUAGE_DEFAULT,
-    extract_verifiable: bool = VERIFIABLE_DEFAULT_EXTRACT,
+    enable_image_annotation: bool = False,
+    force_ocr: bool = False,
+    lang: str = DETECT_NUMBERS["language"],
+    extract_verifiable: bool = True,
 ) -> dict:
     """
     Process a base64 encoded document from a request.
@@ -71,19 +69,40 @@ async def process_document(
                 "Unsupported file type. Only PDF and text files are supported."
             )
 
+    # Generate chunks from text
+    chunks = generate_chunks(text_content)
+
+    # Detect numbers in chunks
+    chunks_with_numbers = [detect_number_in_text(chunk, lang) for chunk in chunks]
+
+    # Generate embeddings
+    embeddings, embeddings_usage = await generate_embeddings(chunks)
+
+    # Extract verifiable data if requested
+    verifiable_usage = {}
+    if extract_verifiable:
+        verifiable_result = await extract_verifiable_data(chunks, chunks_with_numbers)
+        result["verifiable_data"] = verifiable_result
+        verifiable_usage = verifiable_result["usage"]
+
+    # Add chunks and embeddings to result
+    result["chunks"] = chunks
+    result["chunks_with_numbers"] = chunks_with_numbers
+    result["embeddings"] = embeddings
+
     # Calculate processing time
     processing_time = time.time() - start_time
 
     # Consolidate all costs and metrics
     total_cost = (
         pdf_usage.get("cost", 0.0)
-        + 0.0  # embeddings_usage.get("cost", 0.0)
-        + 0.0  # verifiable_usage.get("cost", 0.0)
+        + embeddings_usage.get("cost", 0.0)
+        + verifiable_usage.get("cost", 0.0)
     )
 
     result["processing_metrics"] = {
         "processing_time_seconds": round(processing_time, 2),
-        "total_chunks": 0,  # len(chunks)
+        "total_chunks": len(chunks),
         "costs": {
             "parse_pdf": {
                 "input_tokens": pdf_usage.get("input_tokens", 0),
@@ -92,15 +111,15 @@ async def process_document(
                 "cost": pdf_usage.get("cost", 0.0),
             },
             "embeddings": {
-                "input_tokens": 0,  # embeddings_usage.get("input_tokens", 0),
-                "model": "",  # EMBEDDING_DEFAULT_MODEL,
-                "cost": 0.0,  # embeddings_usage.get("cost", 0.0),
+                "input_tokens": embeddings_usage.get("input_tokens", 0),
+                "model": embeddings_usage.get("model", ""),
+                "cost": embeddings_usage.get("cost", 0.0),
             },
             "verifiable_data": {
-                "input_tokens": 0,  # verifiable_usage.get("input_tokens", 0),
-                "output_tokens": 0,  # verifiable_usage.get("output_tokens", 0),
-                "model": "",  # VERIFIABLE_DEFAULT_MODEL,
-                "cost": 0.0,  # verifiable_usage.get("cost", 0.0),
+                "input_tokens": verifiable_usage.get("input_tokens", 0),
+                "output_tokens": verifiable_usage.get("output_tokens", 0),
+                "model": verifiable_usage.get("model", ""),
+                "cost": verifiable_usage.get("cost", 0.0),
             },
             "total_cost": round(total_cost, 3),
         },
