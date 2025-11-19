@@ -5,7 +5,7 @@ Data models for API interactions.
 
 from pydantic import BaseModel
 from typing import Optional, List, Any, Literal, Dict
-from utils.constants import DETECT_NUMBERS
+from ..utils.constants import DETECT_NUMBERS
 
 
 class ExecutionStep(BaseModel):

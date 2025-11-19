@@ -5,7 +5,6 @@ Uses Docling for document conversion with optional image annotation.
 
 import re
 import base64
-import logging
 import threading
 from contextvars import ContextVar
 from io import BytesIO
@@ -27,13 +26,13 @@ import docling.models.picture_description_api_model as model_module
 import docling.utils.api_image_request as api_module
 from docling_core.types.doc import PictureItem
 
+from ...utils.logs import log_exception
+
 from ...utils.api_clients import get_openai_client
 from ...utils.constants import PARSE_PDF
 
 DOCLING_CONFIG = PARSE_PDF["docling"]
 DOCLING_SYSTEM_PROMPT = "Describe the picture."
-
-logger = logging.getLogger(__name__)
 
 
 class UsageTracker:
@@ -113,8 +112,7 @@ def responses_api_image_request(
         return generated_text, num_tokens, stop_reason
 
     except Exception as exc:
-        logger.error("Error calling the Responses API", exc_info=True)
-        print(f"Error generating image description: {str(exc)}")
+        log_exception("Error annotating image description", exc)
         raise
 
 
@@ -204,6 +202,12 @@ def _calculate_usage(enable_image_annotation: bool) -> dict:
     usage_data = UsageTracker.snapshot()
     input_tokens = usage_data["input_tokens"]
     output_tokens = usage_data["output_tokens"]
+    print("-" * 50)
+    print("Docling Usage:")
+    print(f"  Input Tokens: {input_tokens}")
+    print(f"  Output Tokens: {output_tokens}")
+    print("-" * 50)
+
 
     cost = (
         input_tokens * DOCLING_CONFIG["model_input_price"]
