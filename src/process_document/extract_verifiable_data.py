@@ -10,7 +10,7 @@ from typing import Any
 from openai import AsyncOpenAI
 from pydantic import BaseModel
 
-from ..utils.constants import VERIFIABLE_DATA, DETECT_NUMBERS
+from ..utils.constants import VERIFIABLE_DATA, DETECT_NUMBERS, calculate_cost
 from .detect_number_in_text import detect_number_in_text
 
 VERIFIABLE_CONFIG = VERIFIABLE_DATA
@@ -95,12 +95,9 @@ def _create_error_results(batch: list[tuple], error: str) -> list[dict[str, Any]
     ]
 
 
-def _calculate_cost(input_tokens: int, output_tokens: int) -> float:
+def _calculate_cost(model_id: str, input_tokens: int, output_tokens: int) -> float:
     """Calculate the cost based on token usage."""
-    return (
-        input_tokens * VERIFIABLE_CONFIG["model_input_price"]
-        + output_tokens * VERIFIABLE_CONFIG["model_output_price"]
-    ) / VERIFIABLE_CONFIG["model_pricing_unit"]
+    return calculate_cost(model_id, input_tokens, output_tokens)
 
 
 async def _process_batch_async(
@@ -215,7 +212,7 @@ async def extract_verifiable_data(
             for item in verifiable_data
         )
 
-        cost = _calculate_cost(total_input_tokens, total_output_tokens)
+        cost = _calculate_cost(model, total_input_tokens, total_output_tokens)
 
         usage = dict(
             input_tokens=total_input_tokens,
