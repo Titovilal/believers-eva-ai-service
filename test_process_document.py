@@ -25,7 +25,7 @@ def test_process_document():
         "base64_data": base64_data,
         "enable_image_annotation": True,
         "force_ocr": False,
-        "lang": "en",
+        "lang": "es",
     }
 
     print(f"Testing endpoint: {url}")
