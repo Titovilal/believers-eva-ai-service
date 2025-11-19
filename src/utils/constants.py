@@ -4,18 +4,18 @@ Constants for the document processing pipeline
 
 PARSE_PDF = {
     "docling": {
-        "image_detail": "low",  # "low" or "high" - affects token usage
+        "model_id": "gpt-5-nano",
         "reasoning": "minimal",  # "minimal", "low", "medium", "high" - affects token usage
+        "image_detail": "low",  # "low" or "high" - affects token usage
         "timeout": 30,  # 30 sec per image API call
         "concurrency": 8,  # Number of concurrent API calls
-        "model_id": "gpt-5-nano",
         "model_max_tokens": 2048,
     },
     "openai": {
-        "image_dpi": 200,  # DPI for PDF to image conversion
-        "image_detail": "low",  # "low" or "high" - affects token usage
-        "reasoning": "minimal",  # "minimal", "low", "medium", "high" - affects token usage
         "model_id": "gpt-5-mini",
+        "reasoning": "minimal",  # "minimal", "low", "medium", "high" - affects token usage
+        "image_detail": "low",  # "low" or "high" - affects token usage
+        "image_dpi": 200,  # DPI for PDF to image conversion
     },
 }
 
@@ -24,9 +24,9 @@ DETECT_NUMBERS = {
 }
 
 VERIFIABLE_DATA = {
-    "batch_size": 5,
-    "reasoning": "minimal",  # "minimal", "low", "medium", "high" - affects token usage
     "model_id": "gpt-5-mini",
+    "reasoning": "minimal",  # "minimal", "low", "medium", "high" - affects token usage
+    "batch_size": 5,
 }
 
 CHUNKING = {
@@ -41,20 +41,20 @@ EMBEDDINGS = {
 
 # -------------------------------------------------------------------
 
-MODEL_PRICING = {
-    "gpt-5-mini": {
-        "input_price": 0.25,  # USD per million tokens
-        "output_price": 2.0,  # USD per million tokens
+MODEL_PRICING = {  # All prices are in USD
+    "text-embedding-3-small": {
+        "input_price": 0.02,
+        "output_price": 0.0,  # No output tokens for embeddings
         "pricing_unit": 1_000_000,
     },
     "gpt-5-nano": {
-        "input_price": 0.05,  # USD per million input tokens (vision)
-        "output_price": 0.4,  # USD per million output tokens
+        "input_price": 0.05,
+        "output_price": 0.4,
         "pricing_unit": 1_000_000,
     },
-    "text-embedding-3-small": {
-        "input_price": 0.02,  # USD per million tokens
-        "output_price": 0.0,  # No output tokens for embeddings
+    "gpt-5-mini": {
+        "input_price": 0.25,
+        "output_price": 2.0,
         "pricing_unit": 1_000_000,
     },
 }
