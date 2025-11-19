@@ -6,7 +6,7 @@ Uses Docling for document conversion with optional image annotation.
 import re
 import base64
 import threading
-from contextvars import ContextVar
+import uuid
 from io import BytesIO
 from pathlib import Path
 from typing import Tuple, Optional
@@ -34,33 +34,9 @@ from ...utils.constants import PARSE_PDF
 DOCLING_CONFIG = PARSE_PDF["docling"]
 DOCLING_SYSTEM_PROMPT = "Describe the picture."
 
-
-class UsageTracker:
-    """Context-bound tracker to isolate usage accounting per request."""
-
-    _context: ContextVar[dict] = ContextVar(
-        "_usage_context", default={"input_tokens": 0, "output_tokens": 0}
-    )
-    _lock = threading.Lock()
-
-    @classmethod
-    def reset(cls) -> None:
-        cls._context.set({"input_tokens": 0, "output_tokens": 0})
-
-    @classmethod
-    def record(cls, input_tokens: int, output_tokens: int) -> None:
-        with cls._lock:
-            current = cls._context.get()
-            cls._context.set(
-                {
-                    "input_tokens": current["input_tokens"] + input_tokens,
-                    "output_tokens": current["output_tokens"] + output_tokens,
-                }
-            )
-
-    @classmethod
-    def snapshot(cls) -> dict:
-        return cls._context.get().copy()
+# Global dict of usage lists keyed by request_id (thread-safe)
+_usage_records = {}
+_records_lock = threading.Lock()
 
 
 def _encode_image_to_base64(image: Image.Image) -> str:
@@ -99,6 +75,11 @@ def responses_api_image_request(
     """Custom API request function for OpenAI Responses API using SDK."""
     client = get_openai_client()
     image_base64 = _encode_image_to_base64(image)
+
+    # Extract request_id (internal use only)
+    request_id = params.pop("_request_id", None)
+
+    # Build payload without request_id
     payload = _build_responses_request_payload(prompt, image_base64, params)
 
     try:
@@ -107,7 +88,13 @@ def responses_api_image_request(
         num_tokens = response.usage.input_tokens + response.usage.output_tokens
         stop_reason = VlmStopReason.END_OF_SEQUENCE
 
-        UsageTracker.record(response.usage.input_tokens, response.usage.output_tokens)
+        # Record usage in the list for this request_id
+        if request_id and request_id in _usage_records:
+            with _records_lock:
+                _usage_records[request_id].append({
+                    "input_tokens": response.usage.input_tokens,
+                    "output_tokens": response.usage.output_tokens,
+                })
 
         return generated_text, num_tokens, stop_reason
 
@@ -169,7 +156,7 @@ def _extract_and_process_images(document, full_text: str) -> tuple[str, list[dic
 
 
 def _build_pipeline_options(
-    enable_image_annotation: bool, image_detail: str
+    enable_image_annotation: bool, image_detail: str, request_id: str
 ) -> PdfPipelineOptions:
     pipeline_options = PdfPipelineOptions(
         do_ocr=False,
@@ -187,6 +174,7 @@ def _build_pipeline_options(
             model=DOCLING_CONFIG["model_id"],
             reasoning={"effort": DOCLING_CONFIG["reasoning"]},
             detail=image_detail,
+            _request_id=request_id,  # Pass request_id through params
         ),
         prompt=DOCLING_SYSTEM_PROMPT,
         concurrency=DOCLING_CONFIG["concurrency"],
@@ -195,18 +183,17 @@ def _build_pipeline_options(
     return pipeline_options
 
 
-def _calculate_usage(enable_image_annotation: bool) -> dict:
+def _calculate_usage(enable_image_annotation: bool, request_id: str) -> dict:
     if not enable_image_annotation:
         return _build_usage()
 
-    usage_data = UsageTracker.snapshot()
-    input_tokens = usage_data["input_tokens"]
-    output_tokens = usage_data["output_tokens"]
-    print("-" * 50)
-    print("Docling Usage:")
-    print(f"  Input Tokens: {input_tokens}")
-    print(f"  Output Tokens: {output_tokens}")
-    print("-" * 50)
+    # Sum all usage records for this request_id
+    records = _usage_records.get(request_id, [])
+    if not records:
+        return _build_usage()
+
+    input_tokens = sum(r["input_tokens"] for r in records)
+    output_tokens = sum(r["output_tokens"] for r in records)
 
     cost = (
         input_tokens * DOCLING_CONFIG["model_input_price"]
@@ -233,15 +220,20 @@ def parse_pdf_with_docling(
         enable_image_annotation: Whether to enable image annotation
         image_detail: Detail level for images - "low" (70 tokens) or "high" (~630 tokens avg)
     """
+    # Generate unique request ID
+    request_id = str(uuid.uuid4())
+
     try:
-        UsageTracker.reset()
+        # Initialize empty list for this request
+        with _records_lock:
+            _usage_records[request_id] = []
 
         if enable_image_annotation:
             api_module.api_image_request = responses_api_image_request
             model_module.api_image_request = responses_api_image_request
 
         pipeline_options = _build_pipeline_options(
-            enable_image_annotation, image_detail
+            enable_image_annotation, image_detail, request_id
         )
 
         converter = DocumentConverter(
@@ -263,9 +255,13 @@ def parse_pdf_with_docling(
         doc = result.document
         page_count = len(doc.pages) if hasattr(doc, "pages") and doc.pages else 1
 
-        usage = _calculate_usage(enable_image_annotation)
+        usage = _calculate_usage(enable_image_annotation, request_id)
 
         return dict(text=full_text, page_count=page_count, usage=usage)
 
     except Exception as exc:
         raise Exception(f"Error parsing PDF {pdf_path}: {str(exc)}") from exc
+    finally:
+        # Cleanup records
+        with _records_lock:
+            _usage_records.pop(request_id, None)
