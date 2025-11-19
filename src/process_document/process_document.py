@@ -81,7 +81,9 @@ async def process_document(
     # Extract verifiable data if requested
     verifiable_usage = {}
     if extract_verifiable:
-        verifiable_result = await extract_verifiable_data(chunks, chunks_with_numbers)
+        verifiable_result = await extract_verifiable_data(
+            chunks, chunks_with_numbers, lang=lang
+        )
         result["verifiable_data"] = verifiable_result
         verifiable_usage = verifiable_result["usage"]
 
