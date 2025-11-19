@@ -58,7 +58,8 @@ def _parse_batch_response(response, batch: list[tuple]) -> list[dict[str, Any]]:
                 "usage": {
                     "prompt_tokens": usage.input_tokens // len(batch),
                     "completion_tokens": usage.output_tokens // len(batch),
-                    "total_tokens": (usage.input_tokens + usage.output_tokens) // len(batch),
+                    "total_tokens": (usage.input_tokens + usage.output_tokens)
+                    // len(batch),
                 },
             }
         )
@@ -128,7 +129,10 @@ async def _extract_verifiable_data_async(
         for i in range(0, len(chunks_to_analyze), batch_size)
     ]
 
-    tasks = [_process_batch_async(client, batch, model, reasoning_effort) for batch in batches]
+    tasks = [
+        _process_batch_async(client, batch, model, reasoning_effort)
+        for batch in batches
+    ]
     batch_results = await asyncio.gather(*tasks)
 
     results = []

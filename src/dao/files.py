@@ -16,7 +16,9 @@ class File(Base):
     content_type = Column(Text, nullable=False)
     company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"))
     folder_id = Column(Integer, ForeignKey("folders.id", ondelete="CASCADE"))
-    uploaded_by = Column(Text, ForeignKey("profiles.user_id", ondelete="SET NULL"), nullable=False)
+    uploaded_by = Column(
+        Text, ForeignKey("profiles.user_id", ondelete="SET NULL"), nullable=False
+    )
 
     # Document metadata fields
     document_name = Column(Text)
@@ -34,8 +36,17 @@ class File(Base):
     folder = Column(Text)  # AWS S3 folder name
     text_extraction_type = Column(Text)  # TextExtractionType
 
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
     def __repr__(self):
         return f"<File(id={self.id}, filename='{self.filename}')>"

@@ -208,7 +208,6 @@ def _calculate_usage(enable_image_annotation: bool) -> dict:
     print(f"  Output Tokens: {output_tokens}")
     print("-" * 50)
 
-
     cost = (
         input_tokens * DOCLING_CONFIG["model_input_price"]
         + output_tokens * DOCLING_CONFIG["model_output_price"]

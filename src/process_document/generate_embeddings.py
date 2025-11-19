@@ -53,7 +53,9 @@ async def generate_embeddings(
 
         usage_info = {
             "input_tokens": tokens_used,
-            "cost": tokens_used * EMBEDDINGS["model_price"] / EMBEDDINGS["model_pricing_unit"],
+            "cost": tokens_used
+            * EMBEDDINGS["model_price"]
+            / EMBEDDINGS["model_pricing_unit"],
             "model": model,
         }
 

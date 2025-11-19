@@ -31,23 +31,25 @@ def parse_pdf(
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_file:
             temp_file.write(pdf_input)
             temp_path = Path(temp_file.name)
-        
+
         try:
-            result = _parse_pdf_file(temp_path, enable_image_annotation, force_ocr, image_detail)
+            result = _parse_pdf_file(
+                temp_path, enable_image_annotation, force_ocr, image_detail
+            )
             result["file_type"] = "pdf"
             return result
         finally:
             temp_path.unlink(missing_ok=True)
-    
+
     # Handle path input
     pdf_path = Path(pdf_input)
-    
+
     if not pdf_path.exists():
         raise FileNotFoundError(f"PDF file not found: {pdf_path}")
-    
+
     if not pdf_path.suffix.lower() == ".pdf":
         raise ValueError(f"File must be a PDF: {pdf_path}")
-    
+
     return _parse_pdf_file(pdf_path, enable_image_annotation, force_ocr, image_detail)
 
 
@@ -60,5 +62,5 @@ def _parse_pdf_file(
     """Internal function to parse a PDF file from a path."""
     if force_ocr:
         return parse_pdf_with_raw_openai(pdf_path, image_detail)
-    
+
     return parse_pdf_with_docling(pdf_path, enable_image_annotation, image_detail)

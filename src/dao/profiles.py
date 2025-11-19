@@ -15,8 +15,17 @@ class Profile(Base):
     role = Column(Text, nullable=False, default="none")
     company_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"))
 
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
     def __repr__(self):
         return f"<Profile(id={self.id}, user_id='{self.user_id}', name='{self.name}')>"

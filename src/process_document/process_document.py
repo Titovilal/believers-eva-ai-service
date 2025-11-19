@@ -11,7 +11,7 @@ from .detect_number_in_text import detect_number_in_text
 from .generate_chunks import generate_chunks
 from .generate_embeddings import generate_embeddings
 from .extract_verifiable_data import extract_verifiable_data
-from ..utils.constants import  DETECT_NUMBERS
+from ..utils.constants import DETECT_NUMBERS
 
 
 async def process_document(
