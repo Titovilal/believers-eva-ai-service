@@ -104,7 +104,11 @@ def _calculate_cost(input_tokens: int, output_tokens: int) -> float:
 
 
 async def _process_batch_async(
-    client: AsyncOpenAI, batch: list[tuple], model: str, reasoning_effort: str, lang: str
+    client: AsyncOpenAI,
+    batch: list[tuple],
+    model: str,
+    reasoning_effort: str,
+    lang: str,
 ) -> list[dict[str, Any]]:
     """Process a batch of chunks asynchronously."""
     try:

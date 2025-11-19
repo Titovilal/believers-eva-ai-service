@@ -68,8 +68,6 @@ def _build_request_payload(prompt: str, img_base64: str, image_detail: str) -> d
     }
 
 
-
-
 def parse_pdf_with_raw_openai(
     pdf_path: Path, image_detail: str = OPENAI_CONFIG["image_detail"]
 ) -> dict:
@@ -108,7 +106,9 @@ def parse_pdf_with_raw_openai(
                 total_output_tokens += response.usage.output_tokens
 
         full_text = "\n\n---\n\n".join(markdown_content)
-        cost = calculate_cost(OPENAI_CONFIG["model_id"], total_input_tokens, total_output_tokens)
+        cost = calculate_cost(
+            OPENAI_CONFIG["model_id"], total_input_tokens, total_output_tokens
+        )
 
         usage = dict(
             input_tokens=total_input_tokens,

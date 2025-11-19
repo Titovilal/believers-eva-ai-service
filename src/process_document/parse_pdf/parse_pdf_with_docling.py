@@ -92,10 +92,12 @@ def responses_api_image_request(
         # Record usage in the list for this request_id
         if request_id and request_id in _usage_records:
             with _records_lock:
-                _usage_records[request_id].append({
-                    "input_tokens": response.usage.input_tokens,
-                    "output_tokens": response.usage.output_tokens,
-                })
+                _usage_records[request_id].append(
+                    {
+                        "input_tokens": response.usage.input_tokens,
+                        "output_tokens": response.usage.output_tokens,
+                    }
+                )
 
         return generated_text, num_tokens, stop_reason
 

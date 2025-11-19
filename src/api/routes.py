@@ -3,6 +3,7 @@ Routes Module
 API route definitions and handlers.
 """
 
+import gc
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from src.api.models import ChatRequest, ChatResponse, DocumentRequest, DocumentResponse
@@ -64,13 +65,17 @@ async def process_doc(request: DocumentRequest):
     """
     Endpoint to process a document (PDF or text) and extract structured information.
     """
-    result = await process_document(
-        base64_data=request.base64_data,
-        enable_image_annotation=request.enable_image_annotation,
-        force_ocr=request.force_ocr,
-        lang=request.lang,
-    )
-    return result
+    try:
+        result = await process_document(
+            base64_data=request.base64_data,
+            enable_image_annotation=request.enable_image_annotation,
+            force_ocr=request.force_ocr,
+            lang=request.lang,
+        )
+        return result
+    finally:
+        # Force garbage collection to free memory after processing
+        gc.collect()
 
 
 @router.get("/health")
