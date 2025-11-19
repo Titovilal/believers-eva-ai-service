@@ -3,6 +3,7 @@ PDF Parser using Docling library
 Uses Docling for document conversion with optional image annotation.
 """
 
+import gc
 import re
 import base64
 import threading
@@ -29,7 +30,7 @@ from docling_core.types.doc import PictureItem
 from ...utils.logs import log_exception
 
 from ...utils.api_clients import get_openai_client
-from ...utils.constants import PARSE_PDF
+from ...utils.constants import PARSE_PDF, calculate_cost
 
 DOCLING_CONFIG = PARSE_PDF["docling"]
 DOCLING_SYSTEM_PROMPT = "Describe the picture."
@@ -104,13 +105,18 @@ def responses_api_image_request(
 
 
 def _build_usage(
-    input_tokens: int = 0, output_tokens: int = 0, model: str = "", cost: float = 0
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    model: str = "",
+    cost: float = 0,
+    mode: str = "docling",
 ) -> dict:
     return dict(
         input_tokens=input_tokens,
         output_tokens=output_tokens,
         model=model,
         cost=cost,
+        mode=mode,
     )
 
 
@@ -195,10 +201,7 @@ def _calculate_usage(enable_image_annotation: bool, request_id: str) -> dict:
     input_tokens = sum(r["input_tokens"] for r in records)
     output_tokens = sum(r["output_tokens"] for r in records)
 
-    cost = (
-        input_tokens * DOCLING_CONFIG["model_input_price"]
-        + output_tokens * DOCLING_CONFIG["model_output_price"]
-    ) / DOCLING_CONFIG["model_pricing_unit"]
+    cost = calculate_cost(DOCLING_CONFIG["model_id"], input_tokens, output_tokens)
 
     return _build_usage(
         input_tokens,
@@ -222,6 +225,10 @@ def parse_pdf_with_docling(
     """
     # Generate unique request ID
     request_id = str(uuid.uuid4())
+
+    converter = None
+    result = None
+    doc = None
 
     try:
         # Initialize empty list for this request
@@ -265,3 +272,11 @@ def parse_pdf_with_docling(
         # Cleanup records
         with _records_lock:
             _usage_records.pop(request_id, None)
+
+        # Explicitly cleanup large objects to free memory
+        del doc
+        del result
+        del converter
+
+        # Force garbage collection
+        gc.collect()

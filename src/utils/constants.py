@@ -8,20 +8,14 @@ PARSE_PDF = {
         "reasoning": "minimal",  # "minimal", "low", "medium", "high" - affects token usage
         "timeout": 30,  # 30 sec per image API call
         "concurrency": 8,  # Number of concurrent API calls
-        "model_id": "gpt-5-nano",  # Model used for image description
-        "model_input_price": 0.05,  # USD per million input tokens (vision)
-        "model_output_price": 0.4,  # USD per million output tokens (gpt-5-nano)
+        "model_id": "gpt-5-nano",
         "model_max_tokens": 2048,
-        "model_pricing_unit": 1_000_000,
     },
     "openai": {
         "image_dpi": 200,  # DPI for PDF to image conversion
         "image_detail": "low",  # "low" or "high" - affects token usage
         "reasoning": "minimal",  # "minimal", "low", "medium", "high" - affects token usage
         "model_id": "gpt-5-mini",
-        "model_input_price": 0.25,  # USD per million tokens
-        "model_output_price": 2.0,  # USD per million tokens
-        "model_pricing_unit": 1_000_000,
     },
 }
 
@@ -33,9 +27,6 @@ VERIFIABLE_DATA = {
     "batch_size": 5,
     "reasoning": "minimal",  # "minimal", "low", "medium", "high" - affects token usage
     "model_id": "gpt-5-mini",
-    "model_input_price": 0.25,  # USD per million tokens
-    "model_output_price": 2.0,  # USD per million tokens
-    "model_pricing_unit": 1_000_000,
 }
 
 CHUNKING = {
@@ -46,6 +37,32 @@ CHUNKING = {
 
 EMBEDDINGS = {
     "model_id": "text-embedding-3-small",
-    "model_price": 0.02,  # USD per million tokens
-    "model_pricing_unit": 1_000_000,
 }
+
+# -------------------------------------------------------------------
+
+MODEL_PRICING = {
+    "gpt-5-mini": {
+        "input_price": 0.25,  # USD per million tokens
+        "output_price": 2.0,  # USD per million tokens
+        "pricing_unit": 1_000_000,
+    },
+    "gpt-5-nano": {
+        "input_price": 0.05,  # USD per million input tokens (vision)
+        "output_price": 0.4,  # USD per million output tokens
+        "pricing_unit": 1_000_000,
+    },
+    "text-embedding-3-small": {
+        "input_price": 0.02,  # USD per million tokens
+        "output_price": 0.0,  # No output tokens for embeddings
+        "pricing_unit": 1_000_000,
+    },
+}
+
+
+def calculate_cost(model_id: str, in_tokens: int, out_tokens: int) -> float:
+    """Calculate the cost based on model and token usage."""
+    pricing = MODEL_PRICING[model_id]
+    in_cost = in_tokens * pricing["input_price"]
+    out_cost = out_tokens * pricing["output_price"]
+    return round((in_cost + out_cost) / pricing["pricing_unit"], 4)

@@ -3,6 +3,7 @@ PDF Parser using raw OpenAI Vision API
 Converts PDF pages to images and processes them with OpenAI's Vision API.
 """
 
+import gc
 import base64
 from io import BytesIO
 from pathlib import Path
@@ -10,7 +11,7 @@ from pathlib import Path
 from pdf2image import convert_from_path
 
 from ...utils.api_clients import get_openai_client
-from ...utils.constants import PARSE_PDF
+from ...utils.constants import PARSE_PDF, calculate_cost
 
 OPENAI_CONFIG = PARSE_PDF["openai"]
 OPENAI_SYSTEM_PROMPT = """Convert the following document to markdown.
@@ -67,12 +68,6 @@ def _build_request_payload(prompt: str, img_base64: str, image_detail: str) -> d
     }
 
 
-def _calculate_cost(input_tokens: int, output_tokens: int) -> float:
-    """Calculate the cost based on token usage."""
-    return (
-        input_tokens * OPENAI_CONFIG["model_input_price"]
-        + output_tokens * OPENAI_CONFIG["model_output_price"]
-    ) / OPENAI_CONFIG["model_pricing_unit"]
 
 
 def parse_pdf_with_raw_openai(
@@ -87,6 +82,7 @@ def parse_pdf_with_raw_openai(
     Returns:
         Dictionary with text, page_count, and usage information
     """
+    images = None
     try:
         client = get_openai_client()
         images = convert_from_path(str(pdf_path), dpi=OPENAI_CONFIG["image_dpi"])
@@ -112,16 +108,23 @@ def parse_pdf_with_raw_openai(
                 total_output_tokens += response.usage.output_tokens
 
         full_text = "\n\n---\n\n".join(markdown_content)
-        cost = _calculate_cost(total_input_tokens, total_output_tokens)
+        cost = calculate_cost(OPENAI_CONFIG["model_id"], total_input_tokens, total_output_tokens)
 
         usage = dict(
             input_tokens=total_input_tokens,
             output_tokens=total_output_tokens,
             model=OPENAI_CONFIG["model_id"],
             cost=cost,
+            mode="raw_openai",
         )
 
         return dict(text=full_text, page_count=len(images), usage=usage)
 
     except Exception as exc:
         raise Exception(f"Error parsing PDF {pdf_path}: {str(exc)}") from exc
+    finally:
+        # Explicitly cleanup image objects to free memory
+        del images
+
+        # Force garbage collection
+        gc.collect()

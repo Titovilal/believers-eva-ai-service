@@ -5,7 +5,7 @@ Generate embeddings for text chunks using OpenAI.
 import os
 from typing import List
 from openai import AsyncOpenAI
-from ..utils.constants import EMBEDDINGS
+from ..utils.constants import EMBEDDINGS, calculate_cost
 
 
 async def generate_embeddings(
@@ -53,9 +53,7 @@ async def generate_embeddings(
 
         usage_info = {
             "input_tokens": tokens_used,
-            "cost": tokens_used
-            * EMBEDDINGS["model_price"]
-            / EMBEDDINGS["model_pricing_unit"],
+            "cost": calculate_cost(model, tokens_used, 0),
             "model": model,
         }
 
