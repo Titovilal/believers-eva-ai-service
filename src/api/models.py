@@ -5,11 +5,7 @@ Data models for API interactions.
 
 from pydantic import BaseModel
 from typing import Optional, List, Any, Literal, Dict
-from utils.constants_old import (
-    PARSE_PDF_DEFAULT_ENABLE_IMAGE_ANNOTATION,
-    PARSE_PDF_DEFAULT_FORCE_OCR,
-    LANGUAGE_DEFAULT,
-)
+from utils.constants import DETECT_NUMBERS
 
 
 class ExecutionStep(BaseModel):
@@ -38,9 +34,9 @@ class DocumentRequest(BaseModel):
     """Request model for document processing"""
 
     base64_data: str
-    enable_image_annotation: bool = PARSE_PDF_DEFAULT_ENABLE_IMAGE_ANNOTATION
-    force_ocr: bool = PARSE_PDF_DEFAULT_FORCE_OCR
-    lang: str = LANGUAGE_DEFAULT
+    enable_image_annotation: bool = True
+    force_ocr: bool = False
+    lang: str = DETECT_NUMBERS["language"]
 
 
 class DocumentResponse(BaseModel):
