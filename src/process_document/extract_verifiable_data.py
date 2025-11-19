@@ -10,7 +10,8 @@ from typing import Any
 from openai import AsyncOpenAI
 from pydantic import BaseModel
 
-from ..utils.constants import VERIFIABLE_DATA
+from ..utils.constants import VERIFIABLE_DATA, DETECT_NUMBERS
+from .detect_number_in_text import detect_number_in_text
 
 VERIFIABLE_CONFIG = VERIFIABLE_DATA
 OPENAI_SYSTEM_PROMPT = """You are an expert assistant in extracting verifiable and factual data from texts.
@@ -42,7 +43,9 @@ def _build_batch_content(batch: list[tuple]) -> str:
     return content
 
 
-def _parse_batch_response(response, batch: list[tuple]) -> list[dict[str, Any]]:
+def _parse_batch_response(
+    response, batch: list[tuple], lang: str
+) -> list[dict[str, Any]]:
     """Parse the response from OpenAI and format results."""
     parsed_output = response.output_parsed
     usage = response.usage
@@ -51,10 +54,19 @@ def _parse_batch_response(response, batch: list[tuple]) -> list[dict[str, Any]]:
     results = []
     for i, (chunk_index, _) in enumerate(batch):
         chunk_data = chunks_data[i] if i < len(chunks_data) else None
+        raw_statements = chunk_data.statements if chunk_data else []
+
+        # Filter statements that contain numbers
+        filtered_statements = [
+            statement
+            for statement in raw_statements
+            if detect_number_in_text(statement, lang)
+        ]
+
         results.append(
             {
                 "chunk_index": chunk_index,
-                "statements": chunk_data.statements if chunk_data else [],
+                "statements": filtered_statements,
                 "usage": {
                     "prompt_tokens": usage.input_tokens // len(batch),
                     "completion_tokens": usage.output_tokens // len(batch),
@@ -92,7 +104,7 @@ def _calculate_cost(input_tokens: int, output_tokens: int) -> float:
 
 
 async def _process_batch_async(
-    client: AsyncOpenAI, batch: list[tuple], model: str, reasoning_effort: str
+    client: AsyncOpenAI, batch: list[tuple], model: str, reasoning_effort: str, lang: str
 ) -> list[dict[str, Any]]:
     """Process a batch of chunks asynchronously."""
     try:
@@ -108,7 +120,7 @@ async def _process_batch_async(
             text_format=VerifiableDataResponse,
         )
 
-        return _parse_batch_response(response, batch)
+        return _parse_batch_response(response, batch, lang)
 
     except Exception as exc:
         return _create_error_results(batch, str(exc))
@@ -120,6 +132,7 @@ async def _extract_verifiable_data_async(
     api_key: str,
     batch_size: int,
     reasoning_effort: str,
+    lang: str,
 ) -> list[dict[str, Any]]:
     """Process chunks in batches to reduce API calls."""
     client = AsyncOpenAI(api_key=api_key)
@@ -130,7 +143,7 @@ async def _extract_verifiable_data_async(
     ]
 
     tasks = [
-        _process_batch_async(client, batch, model, reasoning_effort)
+        _process_batch_async(client, batch, model, reasoning_effort, lang)
         for batch in batches
     ]
     batch_results = await asyncio.gather(*tasks)
@@ -148,6 +161,7 @@ async def extract_verifiable_data(
     model: str = VERIFIABLE_CONFIG["model_id"],
     batch_size: int = VERIFIABLE_CONFIG["batch_size"],
     reasoning_effort: str = VERIFIABLE_CONFIG["reasoning"],
+    lang: str = DETECT_NUMBERS["language"],
 ) -> dict[str, Any]:
     """Analyze chunks containing numbers and extract verifiable data using AI.
 
@@ -157,6 +171,7 @@ async def extract_verifiable_data(
         model: OpenAI chat model to use for analysis
         batch_size: Number of chunks to process in each batch
         reasoning_effort: Reasoning effort level - "minimal", "low", "medium", "high"
+        lang: Language code for number detection (default: 'en')
 
     Returns:
         Dictionary with verifiable_data and usage information
@@ -185,7 +200,7 @@ async def extract_verifiable_data(
 
     try:
         verifiable_data = await _extract_verifiable_data_async(
-            chunks_to_analyze, model, api_key, batch_size, reasoning_effort
+            chunks_to_analyze, model, api_key, batch_size, reasoning_effort, lang
         )
 
         total_input_tokens = sum(
